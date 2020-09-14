@@ -89,11 +89,13 @@ export async function joinRoom() {
       err(error);
     }
   }, 1000);
+
+  sendCameraStreams();
 }
 
 export async function sendCameraStreams() {
   log('send camera streams');
-  $('#send-camera').style.display = 'none';
+  // $('#send-camera').style.display = 'none';
 
   // make sure we've joined the room and started our camera. these
   // functions don't do anything if they've already been called this
@@ -139,7 +141,7 @@ export async function sendCameraStreams() {
     }
   }
 
-  $('#stop-streams').style.display = 'initial';
+  // $('#stop-streams').style.display = 'initial';
   showCameraInfo();
 }
 
@@ -718,12 +720,13 @@ export async function updatePeersDisplay(peersInfo = lastPollSyncData,
     $('#available-tracks')
       .appendChild(makeTrackControlEl('my', 'cam-video',
                                       peersInfo[myPeerId].media['cam-video']));
+    let consumer = findConsumerForTrack(myPeerId, 'cam-video');
+    if (!consumer) {
+      console.log('Here!!! subscribe!!!');
+      subscribeToTrack(myPeerId, 'cam-video');
+    }
   }
-  if (camAudioProducer) {
-    $('#available-tracks')
-      .appendChild(makeTrackControlEl('my', 'cam-audio',
-                                      peersInfo[myPeerId].media['cam-audio']));
-  }
+
   if (screenVideoProducer) {
     $('#available-tracks')
       .appendChild(makeTrackControlEl('my', 'screen-video',
@@ -742,7 +745,13 @@ export async function updatePeersDisplay(peersInfo = lastPollSyncData,
     for (let [mediaTag, info] of Object.entries(peer.media)) {
       $('#available-tracks')
         .appendChild(makeTrackControlEl(peer.id, mediaTag, info));
+      // let consumer = findConsumerForTrack(peer.id, mediaTag);
+      // if (!consumer) {
+      //   console.log('Here!!! subscribe!!!peer.id' + peer.id + mediaTag);
+      //   subscribeToTrack(peer.id, mediaTag);
+      // }
     }
+    
   }
 }
 
@@ -752,17 +761,20 @@ function makeTrackControlEl(peerName, mediaTag, mediaInfo) {
       consumer = findConsumerForTrack(peerId, mediaTag);
   div.classList = `track-subscribe track-subscribe-${peerId}`;
 
-  let sub = document.createElement('button');
-  if (!consumer) {
-    sub.innerHTML += 'subscribe'
-    sub.onclick = () => subscribeToTrack(peerId, mediaTag);
-    div.appendChild(sub);
+  if (peerName !== 'my') {
+    let sub = document.createElement('button');
+    if (!consumer) {
+      sub.innerHTML += 'subscribe'
+      sub.onclick = () => subscribeToTrack(peerId, mediaTag);
+      div.appendChild(sub);
 
-  } else {
-    sub.innerHTML += 'unsubscribe'
-    sub.onclick = () => unsubscribeFromTrack(peerId, mediaTag);
-    div.appendChild(sub);
+    } else {
+      sub.innerHTML += 'unsubscribe'
+      sub.onclick = () => unsubscribeFromTrack(peerId, mediaTag);
+      div.appendChild(sub);
+    }
   }
+  
 
   let trackDescription = document.createElement('span');
   trackDescription.innerHTML = `${peerName} ${mediaTag}`
@@ -829,6 +841,8 @@ function addVideoAudio(consumer) {
   // set some attributes on our audio and video elements to make
   // mobile Safari happy. note that for audio to play you need to be
   // capturing from the mic/camera
+  el.id = consumer.appData.peerId;
+  console.log('add video here!!!')
   if (consumer.kind === 'video') {
     el.setAttribute('playsinline', true);
   } else {

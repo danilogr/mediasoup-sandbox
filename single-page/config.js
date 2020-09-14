@@ -1,14 +1,14 @@
 module.exports = {
   // http server ip, port, and peer timeout constant
   //
-  httpIp: '0.0.0.0',
+  httpIp: '127.0.0.1',
   httpPort: 3000,
   httpPeerStale: 15000,
 
   // ssl certs. we'll start as http instead of https if we don't have
   // these
-  sslCrt: 'local.crt',
-  sslKey: 'local.key',
+  sslCrt: 'local.crt',//'/Users/williamwang/server.crt',
+  sslKey: 'local.key', //'/Users/williamwang/server.key',
 
   mediasoup: {
     worker: {
@@ -81,7 +81,7 @@ module.exports = {
       listenIps: [
        { ip: '127.0.0.1', announcedIp: null },
        // { ip: '192.168.42.68', announcedIp: null },
-       { ip: '10.10.23.101', announcedIp: null },
+      //  { ip: '10.10.23.101', announcedIp: null },
       ],
       initialAvailableOutgoingBitrate: 800000,
     }

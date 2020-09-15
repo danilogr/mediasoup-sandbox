@@ -10,7 +10,6 @@ const log = debugModule('demo-app');
 const warn = debugModule('demo-app:WARN');
 const err = debugModule('demo-app:ERROR');
 
-
 //
 // export all the references we use internally to manage call state,
 // to make it easy to tinker from the js console. for example:
@@ -29,22 +28,25 @@ export let device,
            screenVideoProducer,
            screenAudioProducer,
            currentActiveSpeaker = {},
+           currentNameMap = {},
            lastPollSyncData = {},
            consumers = [],
-           pollingInterval;
+           pollingInterval,
+           gazeX = 0,
+           gazeY = 0;
 
 export async function showCoords(event) {
   var cX = event.clientX;
   var cY = event.clientY;
-  document.getElementById("gazeX").innerHTML = cX;//GazeData.GazeX;
-  document.getElementById("gazeY").innerHTML = cY;//GazeData.GazeY;
+  gazeX = cX;//GazeData.GazeX;
+  gazeY = cY;//GazeData.GazeY;
 }
 
 function processGaze(GazeData) {
   var x_ = GazeData.docX;
   var y_ = GazeData.docY;
-  document.getElementById("gazeX").innerHTML = x_;//GazeData.GazeX;
-  document.getElementById("gazeY").innerHTML = y_;//GazeData.GazeY;
+  gazeX = x_;//GazeData.GazeX;
+  gazeY = y_;//GazeData.GazeY;
 
   // this.setState({ context: { x: x_, y: y_ } });
 
@@ -103,6 +105,13 @@ export async function main() {
 
 export async function joinRoom() {
   if (joined) {
+    return;
+  }
+  let name = $('#username').value;
+  let password = $('#pwd').value;
+  let { result } = await sig('login', {username: name, pwd: password});
+  if (result === 'denied') {
+    alert("Wrong password!");
     return;
   }
 
@@ -639,13 +648,14 @@ async function createTransport(direction) {
 //
 
 async function pollAndUpdate() {
-  let { peers, activeSpeaker, error } = await sig('sync');
+  let { peers, activeSpeaker, nameMap, error } = await sig('sync');
   if (error) {
     return ({ error });
   }
 
   // always update bandwidth stats and active speaker display
   currentActiveSpeaker = activeSpeaker;
+  currentNameMap = nameMap;
   updateActiveSpeaker();
   updateCamVideoProducerStatsDisplay();
   // updateScreenVideoProducerStatsDisplay();
@@ -892,6 +902,10 @@ function addVideoAudio(consumer) {
   if (!(consumer && consumer.track)) {
     return;
   }
+  let div = document.createElement('div');
+  div.setAttribute('class', 'participant_div');
+  let nametag = document.createElement('span')
+  nametag.innerHTML = currentNameMap[consumer.appData.peerId]
   let el = document.createElement(consumer.kind);
   // set some attributes on our audio and video elements to make
   // mobile Safari happy. note that for audio to play you need to be
@@ -905,7 +919,9 @@ function addVideoAudio(consumer) {
     el.setAttribute('playsinline', true);
     el.setAttribute('autoplay', true);
   }
-  $(`#remote-${consumer.kind}`).appendChild(el);
+  div.appendChild(el)
+  div.appendChild(nametag)
+  $(`#remote-${consumer.kind}`).appendChild(div);
   el.srcObject = new MediaStream([ consumer.track.clone() ]);
   el.consumer = consumer;
   // let's "yield" and return before playing, rather than awaiting on
@@ -972,13 +988,14 @@ function updateActiveSpeaker() {
   //   });
   // }
   if (currentActiveSpeaker.peerId) {
-    $(`#participant_${currentActiveSpeaker.peerId}`).classList.add('active-speaker');
+    if ($(`#participant_${currentActiveSpeaker.peerId}`) !== null)
+      $(`#participant_${currentActiveSpeaker.peerId}`).classList.add('active-speaker');
   }
 }
 
 export async function sendGazeDirection() {
-  var x = +document.getElementById('gazeX').innerHTML;
-  var y = +document.getElementById('gazeY').innerHTML;
+  var x = gazeX;
+  var y = gazeY;
   var videos = document.getElementsByTagName("video");
   let target = "";
   for (var vid of videos) {

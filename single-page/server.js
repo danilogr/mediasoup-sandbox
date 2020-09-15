@@ -12,6 +12,8 @@ const log = debugModule('demo-app');
 const warn = debugModule('demo-app:WARN');
 const err = debugModule('demo-app:ERROR');
 
+const password = 'gs0915'
+
 // one mediasoup worker and router
 //
 let worker, router, audioLevelObserver;
@@ -30,7 +32,7 @@ const roomState = {
 }
 
 let gazeMap = {}
-let newGazeMap = {};
+let nameMap = {};
 //
 // for each peer that connects, we keep a table of peers and what
 // tracks are being sent and received. we also need to know the last
@@ -215,7 +217,8 @@ expressApp.post('/signaling/sync', async (req, res) => {
 
     res.send({
       peers: roomState.peers,
-      activeSpeaker: roomState.activeSpeaker
+      activeSpeaker: roomState.activeSpeaker,
+      nameMap: nameMap
     });
   } catch (e) {
     console.error(e.message);
@@ -755,6 +758,21 @@ expressApp.post('/signaling/gaze', async (req, res) => {
     res.send({gazeMap});
   } catch (e) {
     console.error('error in /signaling/gaze', e);
+    res.send({ error: e });
+  }
+});
+
+expressApp.post('/signaling/login', async (req, res) => {
+  try {
+    let { username, pwd, peerId } = req.body;
+    if (pwd !== password) {
+      res.send({result: "denied"});
+    } else {
+      nameMap[peerId] = username;
+      res.send({result: "OK"});
+    }
+  } catch (e) {
+    console.error('error in /signaling/login', e);
     res.send({ error: e });
   }
 });

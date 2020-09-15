@@ -18,11 +18,15 @@ input[type="checkbox"] {
   white-space: nowrap;
 }
 
+.participant_div {
+  position: relative;
+} 
 .participant_video {
+  position: absolute;
   height: 40%;
   width: 25%;
   opacity: 0.3;
-  margin: 5px;
+  margin: auto;
 } 
 
 #outgoing-cam-streams-ctrl {

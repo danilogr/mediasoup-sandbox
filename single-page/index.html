@@ -13,6 +13,12 @@
 <body onload="Client.main()">
 <div id="local-control">
   <div id="join-control">
+    <form>
+      <label for="username">Display name:</label><br>
+      <input type="text" id="username" name="username"><br>
+      <label for="pwd">Password:</label><br>
+      <input type="password" id="pwd" name="pwd">
+    </form>
     <button type="button" onclick="GazeCloudAPI.StartEyeTracking();">Start Calibrating</button>
     <button type="button" onclick="GazeCloudAPI.StopEyeTracking();">Stop Tracking</button>
     <button id="join-button" onclick="Client.joinRoom()">
@@ -77,8 +83,8 @@
 <div id="gaze"
   style='position: absolute;display:none;width: 100px;height: 100px;border-radius: 50%;border: solid 2px  rgba(255, 255,255, .2);	box-shadow: 0 0 100px 3px rgba(125, 125,125, .5);	pointer-events: none;	z-index: 999999'>
 </div>
-<p id="gazeX"></p>
-<p id="gazeY"></p>
+<p id="gazeX" style='display: none;'></p>
+<p id="gazeY" style='display: none;'></p>
 
 </body>
 </html>

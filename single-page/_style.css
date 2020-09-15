@@ -3,6 +3,11 @@ body {
   flex-direction: column;
 }
 
+video {
+  width: 100%;
+  max-height: 100%;
+}
+
 label {
   vertical-align: middle;
 }
@@ -17,11 +22,6 @@ input[type="checkbox"] {
 .nowrap {
   white-space: nowrap;
 }
-
-.participant_video {
-  width: 100%;
-  max-height: 100%;
-} 
 
 #outgoing-cam-streams-ctrl {
   margin-left: 0.5em;

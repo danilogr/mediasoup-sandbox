@@ -33,6 +33,34 @@ export let device,
            consumers = [],
            pollingInterval;
 
+
+function processGaze(GazeData) {
+  var x_ = GazeData.docX;
+  var y_ = GazeData.docY;
+  document.getElementById("gazeX").innerHTML = x_;//GazeData.GazeX;
+  document.getElementById("gazeY").innerHTML = y_;//GazeData.GazeY;
+
+  // this.setState({ context: { x: x_, y: y_ } });
+
+  var gaze = document.getElementById("gaze");
+  x_ -= gaze.clientWidth / 2;
+  y_ -= gaze.clientHeight / 2;
+
+  // console.log(x_, y_);
+
+  gaze.style.left = x_ + "px";
+  gaze.style.top = y_ + "px";
+
+  if (GazeData.state !== 0) {
+    if (gaze.style.display === 'block')
+      gaze.style.display = 'none';
+  } else {
+    if (gaze.style.display === 'none')
+      gaze.style.display = 'block';
+  }
+
+}
+
 //
 // entry point -- called by document.body.onload
 //
@@ -53,6 +81,14 @@ export async function main() {
   // use sendBeacon to tell the server we're disconnecting when
   // the page unloads
   window.addEventListener('unload', () => sig('leave', {}, true));
+
+  GazeCloudAPI.OnCalibrationComplete = function () {
+    console.log('gaze Calibration Complete');
+  }
+  GazeCloudAPI.OnCamDenied = function () { console.log('camera access denied') }
+  GazeCloudAPI.OnError = function (msg) { console.log('err: ' + msg) }
+  GazeCloudAPI.UseClickRecalibration = true;
+  GazeCloudAPI.OnResult = processGaze
 }
 
 //
@@ -120,26 +156,31 @@ export async function sendCameraStreams() {
     encodings: camEncodings(),
     appData: { mediaTag: 'cam-video' }
   });
-  if (getCamPausedState()) {
-    try {
-      await camVideoProducer.pause();
-    } catch (e) {
-      console.error(e);
-    }
-  }
+
+  // 9/14 no need to check apuse
+  // if (getCamPausedState()) {
+  //   try {
+  //     await camVideoProducer.pause();
+  //   } catch (e) {
+  //     console.error(e);
+  //   }
+  // }
+
 
   // same thing for audio, but we can use our already-created
   camAudioProducer = await sendTransport.produce({
     track: localCam.getAudioTracks()[0],
     appData: { mediaTag: 'cam-audio' }
   });
-  if (getMicPausedState()) {
-    try {
-      camAudioProducer.pause();
-    } catch (e) {
-      console.error(e);
-    }
-  }
+
+  // 9/14 no need to check pause
+  // if (getMicPausedState()) {
+  //   try {
+  //     camAudioProducer.pause();
+  //   } catch (e) {
+  //     console.error(e);
+  //   }
+  // }
 
   // $('#stop-streams').style.display = 'initial';
   showCameraInfo();
@@ -360,7 +401,7 @@ export async function leaveRoom() {
   $('#local-screen-audio-pause-ctrl').style.display = 'none';
   showCameraInfo();
   updateCamVideoProducerStatsDisplay();
-  updateScreenVideoProducerStatsDisplay();
+  // updateScreenVideoProducerStatsDisplay();
   updatePeersDisplay();
 }
 
@@ -542,11 +583,14 @@ async function createTransport(direction) {
       // aren't checked, for each media type. not very clean code, here
       // but, you know, this isn't a real application.)
       let paused = false;
-      if (appData.mediaTag === 'cam-video') {
-        paused = getCamPausedState();
-      } else if (appData.mediaTag === 'cam-audio') {
-        paused = getMicPausedState();
-      }
+
+      // 9/14 no pause state detection
+      // if (appData.mediaTag === 'cam-video') {
+      //   paused = getCamPausedState();
+      // } else if (appData.mediaTag === 'cam-audio') {
+      //   paused = getMicPausedState();
+      // }
+
       // tell the server what it needs to know from us in order to set
       // up a server-side producer object, and get back a
       // producer.id. call callback() on success or errback() on
@@ -598,8 +642,8 @@ async function pollAndUpdate() {
   currentActiveSpeaker = activeSpeaker;
   updateActiveSpeaker();
   updateCamVideoProducerStatsDisplay();
-  updateScreenVideoProducerStatsDisplay();
-  updateConsumersStatsDisplay();
+  // updateScreenVideoProducerStatsDisplay();
+  // updateConsumersStatsDisplay();
 
   // decide if we need to update tracks list and video/audio
   // elements. build list of peers, sorted by join time, removing last
@@ -780,55 +824,55 @@ function makeTrackControlEl(peerName, mediaTag, mediaInfo) {
   trackDescription.innerHTML = `${peerName} ${mediaTag}`
   div.appendChild(trackDescription);
 
-  try {
-    if (mediaInfo) {
-      let producerPaused = mediaInfo.paused;
-      let prodPauseInfo = document.createElement('span');
-      prodPauseInfo.innerHTML = producerPaused ? '[producer paused]'
-                                               : '[producer playing]';
-      div.appendChild(prodPauseInfo);
-    }
-  } catch (e) {
-    console.error(e);
-  }
+  // try {
+  //   if (mediaInfo) {
+  //     let producerPaused = mediaInfo.paused;
+  //     let prodPauseInfo = document.createElement('span');
+  //     prodPauseInfo.innerHTML = producerPaused ? '[producer paused]'
+  //                                              : '[producer playing]';
+  //     div.appendChild(prodPauseInfo);
+  //   }
+  // } catch (e) {
+  //   console.error(e);
+  // }
 
-  if (consumer) {
-    let pause = document.createElement('span'),
-        checkbox = document.createElement('input'),
-        label = document.createElement('label');
-    pause.classList = 'nowrap';
-    checkbox.type = 'checkbox';
-    checkbox.checked = !consumer.paused;
-    checkbox.onchange = async () => {
-      if (checkbox.checked) {
-        await resumeConsumer(consumer);
-      } else {
-        await pauseConsumer(consumer);
-      }
-      updatePeersDisplay();
-    }
-    label.id = `consumer-stats-${consumer.id}`;
-    if (consumer.paused) {
-      label.innerHTML = '[consumer paused]'
-    } else {
-      let stats = lastPollSyncData[myPeerId].stats[consumer.id],
-          bitrate = '-';
-      if (stats) {
-        bitrate = Math.floor(stats.bitrate / 1000.0);
-      }
-      label.innerHTML = `[consumer playing ${bitrate} kb/s]`;
-    }
-    pause.appendChild(checkbox);
-    pause.appendChild(label);
-    div.appendChild(pause);
+  // if (consumer) {
+  //   let pause = document.createElement('span'),
+  //       checkbox = document.createElement('input'),
+  //       label = document.createElement('label');
+  //   pause.classList = 'nowrap';
+  //   checkbox.type = 'checkbox';
+  //   checkbox.checked = !consumer.paused;
+  //   checkbox.onchange = async () => {
+  //     if (checkbox.checked) {
+  //       await resumeConsumer(consumer);
+  //     } else {
+  //       await pauseConsumer(consumer);
+  //     }
+  //     updatePeersDisplay();
+  //   }
+  //   label.id = `consumer-stats-${consumer.id}`;
+  //   if (consumer.paused) {
+  //     label.innerHTML = '[consumer paused]'
+  //   } else {
+  //     let stats = lastPollSyncData[myPeerId].stats[consumer.id],
+  //         bitrate = '-';
+  //     if (stats) {
+  //       bitrate = Math.floor(stats.bitrate / 1000.0);
+  //     }
+  //     label.innerHTML = `[consumer playing ${bitrate} kb/s]`;
+  //   }
+  //   pause.appendChild(checkbox);
+  //   pause.appendChild(label);
+  //   div.appendChild(pause);
 
-    if (consumer.kind === 'video') {
-      let remoteProducerInfo = document.createElement('span');
-      remoteProducerInfo.classList = 'nowrap track-ctrl';
-      remoteProducerInfo.id = `track-ctrl-${consumer.producerId}`;
-      div.appendChild(remoteProducerInfo);
-    }
-  }
+  //   if (consumer.kind === 'video') {
+  //     let remoteProducerInfo = document.createElement('span');
+  //     remoteProducerInfo.classList = 'nowrap track-ctrl';
+  //     remoteProducerInfo.id = `track-ctrl-${consumer.producerId}`;
+  //     div.appendChild(remoteProducerInfo);
+  //   }
+  // }
 
   return div;
 }
@@ -841,10 +885,11 @@ function addVideoAudio(consumer) {
   // set some attributes on our audio and video elements to make
   // mobile Safari happy. note that for audio to play you need to be
   // capturing from the mic/camera
-  el.id = consumer.appData.peerId;
+  el.setAttribute('id', consumer.appData.peerId);
   console.log('add video here!!!')
   if (consumer.kind === 'video') {
     el.setAttribute('playsinline', true);
+    el.setAttribute('class', "participant_video")
   } else {
     el.setAttribute('playsinline', true);
     el.setAttribute('autoplay', true);

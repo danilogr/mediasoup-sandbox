@@ -33,6 +33,12 @@ export let device,
            consumers = [],
            pollingInterval;
 
+export async function showCoords(event) {
+  var cX = event.clientX;
+  var cY = event.clientY;
+  document.getElementById("gazeX").innerHTML = cX;//GazeData.GazeX;
+  document.getElementById("gazeY").innerHTML = cY;//GazeData.GazeY;
+}
 
 function processGaze(GazeData) {
   var x_ = GazeData.docX;
@@ -645,6 +651,7 @@ async function pollAndUpdate() {
   // updateScreenVideoProducerStatsDisplay();
   // updateConsumersStatsDisplay();
 
+
   // decide if we need to update tracks list and video/audio
   // elements. build list of peers, sorted by join time, removing last
   // seen time and stats, so we can easily do a deep-equals
@@ -680,6 +687,10 @@ async function pollAndUpdate() {
   });
 
   lastPollSyncData = peers;
+
+  let {target, gazeMap} = await sendGazeDirection();
+  updateGazeInfo(target, gazeMap);
+
   return ({}); // return an empty object if there isn't an error
 }
 
@@ -754,7 +765,6 @@ export async function changeScreenAudioPaused() {
   }
 }
 
-
 export async function updatePeersDisplay(peersInfo = lastPollSyncData,
                                          sortedPeers = sortPeers(peersInfo)) {
   log('room state updated', peersInfo);
@@ -824,6 +834,7 @@ function makeTrackControlEl(peerName, mediaTag, mediaInfo) {
   trackDescription.innerHTML = `${peerName} ${mediaTag}`
   div.appendChild(trackDescription);
 
+  // 9/14 don't need those
   // try {
   //   if (mediaInfo) {
   //     let producerPaused = mediaInfo.paused;
@@ -885,7 +896,7 @@ function addVideoAudio(consumer) {
   // set some attributes on our audio and video elements to make
   // mobile Safari happy. note that for audio to play you need to be
   // capturing from the mic/camera
-  el.setAttribute('id', consumer.appData.peerId);
+  el.setAttribute('id', 'participant_' + consumer.appData.peerId);
   console.log('add video here!!!')
   if (consumer.kind === 'video') {
     el.setAttribute('playsinline', true);
@@ -949,15 +960,76 @@ export async function getCurrentDeviceId() {
 }
 
 function updateActiveSpeaker() {
-  $$('.track-subscribe').forEach((el) => {
+  $$('video').forEach((el) => {
     el.classList.remove('active-speaker');
-  });
+  })
+  // $$('.track-subscribe').forEach((el) => {
+  //   el.classList.remove('active-speaker');
+  // });
+  // if (currentActiveSpeaker.peerId) {
+  //   $(`.track-subscribe-${currentActiveSpeaker.peerId}`).forEach((el) => {
+  //     el.classList.add('active-speaker');
+  //   });
+  // }
   if (currentActiveSpeaker.peerId) {
-    $$(`.track-subscribe-${currentActiveSpeaker.peerId}`).forEach((el) => {
-      el.classList.add('active-speaker');
-    });
+    $(`#participant_${currentActiveSpeaker.peerId}`).classList.add('active-speaker');
   }
 }
+
+export async function sendGazeDirection() {
+  var x = +document.getElementById('gazeX').innerHTML;
+  var y = +document.getElementById('gazeY').innerHTML;
+  var videos = document.getElementsByTagName("video");
+  let target = "";
+  for (var vid of videos) {
+    if (!vid.id.includes('participant')) {
+      continue;
+    }
+    const left = vid.offsetLeft;
+    const top = vid.offsetTop;
+    const w = vid.offsetWidth;
+    const h = vid.offsetHeight;
+    // console.log(left, top, left+w, top+h, 'x,y:', x, y);
+    if (x >= left && x <= left + w && y >= top && y <= top + h) {
+      target = vid.id;
+      break;
+    }
+  }
+  console.log('target is ' + target);
+  let { gazeMap } = await sig('gaze', { src: 'participant_' + myPeerId, tar: target });
+  console.log(gazeMap);
+  return {target, gazeMap};
+}
+
+function updateGazeInfo(target, gazeMap) {
+  const gazeDistribution = {};
+  const total = Object.keys(lastPollSyncData).length;
+  for (var key in lastPollSyncData) {
+    gazeDistribution['participant_' + key] = 0
+  }
+  for (var key in gazeMap) {
+    const gaze = gazeMap[key];
+    if ((gaze === '') || (gaze === key)) {
+      // console.log('here!!!!');
+      continue;
+    }
+    if (gaze in gazeDistribution) {
+      gazeDistribution[gaze] += 1.0 / (total - 1);
+    } else {
+      gazeDistribution[gaze] = 0;
+    }
+  }
+
+  for (var key in gazeDistribution) {
+    if ($('#' + key) !== null)
+      $('#' + key).style.opacity = 0.3 + gazeDistribution[key] * 0.7;
+  }
+  if (target in gazeMap) {
+    const gaze = gazeMap[target];
+
+  }
+}
+
 
 function updateCamVideoProducerStatsDisplay() {
   let tracksEl = $('#camera-producer-stats');

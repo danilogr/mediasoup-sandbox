@@ -28,6 +28,9 @@ const roomState = {
   producers: [],
   consumers: []
 }
+
+let gazeMap = {}
+let newGazeMap = {};
 //
 // for each peer that connects, we keep a table of peers and what
 // tracks are being sent and received. we also need to know the last
@@ -740,6 +743,18 @@ expressApp.post('/signaling/resume-producer', async (req, res) => {
     res.send({ resumed: true });
   } catch (e) {
     console.error('error in /signaling/resume-producer', e);
+    res.send({ error: e });
+  }
+});
+
+expressApp.post('/signaling/gaze', async (req, res) => {
+  try {
+    let {src, tar} = req.body;
+    gazeMap[src] = tar;
+    // console.log(src + ' -> ' + tar);
+    res.send({gazeMap});
+  } catch (e) {
+    console.error('error in /signaling/gaze', e);
     res.send({ error: e });
   }
 });

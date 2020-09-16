@@ -784,7 +784,7 @@ export async function autoSubscribe(sortedPeers) {
     if (peer.id === myPeerId) {
       continue;
     }
-    await sleep(1000);
+    await sleep(1500);
     for (let [mediaTag, info] of Object.entries(peer.media)) {
       let consumer = findConsumerForTrack(peer.id, mediaTag);
       if (!consumer) {

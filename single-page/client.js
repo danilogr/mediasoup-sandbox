@@ -464,8 +464,9 @@ export async function subscribeToTrack(peerId, mediaTag) {
   consumers.push(consumer);
 
   // ui
+  console.log('after subscribe: add video here!!!!');
   await addVideoAudio(consumer);
-  updatePeersDisplay();
+  // updatePeersDisplay();
 }
 
 export async function unsubscribeFromTrack(peerId, mediaTag) {
@@ -481,7 +482,7 @@ export async function unsubscribeFromTrack(peerId, mediaTag) {
     console.error(e);
   }
   // force update of ui
-  updatePeersDisplay();
+  // updatePeersDisplay();
 }
 
 export async function pauseConsumer(consumer) {
@@ -647,6 +648,8 @@ async function createTransport(direction) {
 // polling/update logic
 //
 
+
+
 async function pollAndUpdate() {
   let { peers, activeSpeaker, nameMap, error } = await sig('sync');
   if (error) {
@@ -671,6 +674,7 @@ async function pollAndUpdate() {
       lastPeersList = sortPeers(lastPollSyncData);
   if (!deepEqual(thisPeersList, lastPeersList)) {
     updatePeersDisplay(peers, thisPeersList);
+    autoSubscribe(thisPeersList);
   }
 
   // if a peer has gone away, we need to close all consumers we have
@@ -775,15 +779,32 @@ export async function changeScreenAudioPaused() {
   }
 }
 
+export async function autoSubscribe(sortedPeers) {
+  for (let peer of sortedPeers) {
+    if (peer.id === myPeerId) {
+      continue;
+    }
+    await sleep(1000);
+    for (let [mediaTag, info] of Object.entries(peer.media)) {
+      let consumer = findConsumerForTrack(peer.id, mediaTag);
+      if (!consumer) {
+        console.log('Here!!! subscribe!!!peer.id' + peer.id + mediaTag);
+        subscribeToTrack(peer.id, mediaTag);
+      }
+    }
+
+  }
+}
+
 export async function updatePeersDisplay(peersInfo = lastPollSyncData,
                                          sortedPeers = sortPeers(peersInfo)) {
   log('room state updated', peersInfo);
 
   $('#available-tracks').innerHTML = '';
   if (camVideoProducer) {
-    $('#available-tracks')
-      .appendChild(makeTrackControlEl('my', 'cam-video',
-                                      peersInfo[myPeerId].media['cam-video']));
+    // $('#available-tracks')
+    //   .appendChild(makeTrackControlEl('my', 'cam-video',
+    //                                   peersInfo[myPeerId].media['cam-video']));
     let consumer = findConsumerForTrack(myPeerId, 'cam-video');
     if (!consumer) {
       console.log('Here!!! subscribe!!!');
@@ -792,31 +813,26 @@ export async function updatePeersDisplay(peersInfo = lastPollSyncData,
   }
 
   if (screenVideoProducer) {
-    $('#available-tracks')
-      .appendChild(makeTrackControlEl('my', 'screen-video',
-                                    peersInfo[myPeerId].media['screen-video']));
+    // $('#available-tracks')
+    //   .appendChild(makeTrackControlEl('my', 'screen-video',
+    //                                 peersInfo[myPeerId].media['screen-video']));
   }
   if (screenAudioProducer) {
-    $('#available-tracks')
-      .appendChild(makeTrackControlEl('my', 'screen-audio',
-                                    peersInfo[myPeerId].media['screen-audio']));
+    // $('#available-tracks')
+    //   .appendChild(makeTrackControlEl('my', 'screen-audio',
+    //                                 peersInfo[myPeerId].media['screen-audio']));
   }
 
-  for (let peer of sortedPeers) {
-    if (peer.id === myPeerId) {
-      continue;
-    }
-    for (let [mediaTag, info] of Object.entries(peer.media)) {
-      $('#available-tracks')
-        .appendChild(makeTrackControlEl(peer.id, mediaTag, info));
-      // let consumer = findConsumerForTrack(peer.id, mediaTag);
-      // if (!consumer) {
-      //   console.log('Here!!! subscribe!!!peer.id' + peer.id + mediaTag);
-      //   subscribeToTrack(peer.id, mediaTag);
-      // }
-    }
+  // for (let peer of sortedPeers) {
+  //   if (peer.id === myPeerId) {
+  //     continue;
+  //   }
+  //   for (let [mediaTag, info] of Object.entries(peer.media)) {
+  //     $('#available-tracks')
+  //       .appendChild(makeTrackControlEl(peer.id, mediaTag, info));
+  //   }
     
-  }
+  // }
 }
 
 function makeTrackControlEl(peerName, mediaTag, mediaInfo) {
@@ -904,8 +920,10 @@ function addVideoAudio(consumer) {
   }
   let div = document.createElement('div');
   div.setAttribute('class', 'participant_div');
-  let nametag = document.createElement('span')
-  nametag.innerHTML = currentNameMap[consumer.appData.peerId]
+  div.setAttribute('id', 'participant_' + consumer.appData.peerId + '_div');
+  let nametag = document.createElement('span');
+  nametag.setAttribute('id', 'participant_' + consumer.appData.peerId + '_name');
+  nametag.innerHTML = currentNameMap['participant_' + consumer.appData.peerId];
   let el = document.createElement(consumer.kind);
   // set some attributes on our audio and video elements to make
   // mobile Safari happy. note that for audio to play you need to be
@@ -914,13 +932,13 @@ function addVideoAudio(consumer) {
   console.log('add video here!!!')
   if (consumer.kind === 'video') {
     el.setAttribute('playsinline', true);
-    el.setAttribute('class', "participant_video")
+    el.setAttribute('class', "participant_video");
   } else {
     el.setAttribute('playsinline', true);
     el.setAttribute('autoplay', true);
   }
-  div.appendChild(el)
-  div.appendChild(nametag)
+  div.appendChild(el);
+  div.appendChild(nametag);
   $(`#remote-${consumer.kind}`).appendChild(div);
   el.srcObject = new MediaStream([ consumer.track.clone() ]);
   el.consumer = consumer;
@@ -937,7 +955,7 @@ function addVideoAudio(consumer) {
 function removeVideoAudio(consumer) {
   document.querySelectorAll(consumer.kind).forEach((v) => {
     if (v.consumer === consumer) {
-      v.parentNode.removeChild(v);
+      v.parentNode.parentNode.removeChild(v.parentNode);
     }
   });
 }
@@ -976,7 +994,7 @@ export async function getCurrentDeviceId() {
 }
 
 function updateActiveSpeaker() {
-  $$('video').forEach((el) => {
+  $$('.participant_div').forEach((el) => {
     el.classList.remove('active-speaker');
   })
   // $$('.track-subscribe').forEach((el) => {
@@ -988,8 +1006,8 @@ function updateActiveSpeaker() {
   //   });
   // }
   if (currentActiveSpeaker.peerId) {
-    if ($(`#participant_${currentActiveSpeaker.peerId}`) !== null)
-      $(`#participant_${currentActiveSpeaker.peerId}`).classList.add('active-speaker');
+    if ($(`#participant_${currentActiveSpeaker.peerId}_div`) !== null)
+      $(`#participant_${currentActiveSpeaker.peerId}_div`).classList.add('active-speaker');
   }
 }
 
@@ -1012,10 +1030,61 @@ export async function sendGazeDirection() {
       break;
     }
   }
-  console.log('target is ' + target);
+  // console.log('target is ' + target);
   let { gazeMap } = await sig('gaze', { src: 'participant_' + myPeerId, tar: target });
-  console.log(gazeMap);
+  // console.log(gazeMap);
   return {target, gazeMap};
+}
+
+function drawArrowhead(context, from, to, radius) {
+  var x_center = to.x;
+  var y_center = to.y;
+
+  var angle;
+  var x;
+  var y;
+
+  context.beginPath();
+
+  angle = Math.atan2(to.y - from.y, to.x - from.x)
+  x = radius * Math.cos(angle) + x_center;
+  y = radius * Math.sin(angle) + y_center;
+
+  context.moveTo(x, y);
+
+  angle += (1.0 / 3.0) * (2 * Math.PI)
+  x = radius * Math.cos(angle) + x_center;
+  y = radius * Math.sin(angle) + y_center;
+
+  context.lineTo(x, y);
+
+  angle += (1.0 / 3.0) * (2 * Math.PI)
+  x = radius * Math.cos(angle) + x_center;
+  y = radius * Math.sin(angle) + y_center;
+
+  context.lineTo(x, y);
+
+  context.closePath();
+
+  context.fill();
+  /**
+   * var c = document.getElementById("myCanvas");
+var ctx = c.getContext("2d");
+var gradient = ctx.createLinearGradient(0, 0, 170, 0);
+gradient.addColorStop("0", "magenta");
+gradient.addColorStop("0.5" ,"blue");
+gradient.addColorStop("1.0", "red");
+
+drawArrowhead(ctx, {x:0, y:0}, {x:100, y:20}, 10);
+
+ctx.beginPath();
+ctx.strokeStyle = gradient;
+ctx.lineWidth = 5;
+ctx.moveTo(0, 0);
+ctx.lineTo(100, 20);
+ctx.stroke();
+   * 
+   */
 }
 
 function updateGazeInfo(target, gazeMap) {
@@ -1044,6 +1113,22 @@ function updateGazeInfo(target, gazeMap) {
   if (target in gazeMap) {
     const gaze = gazeMap[target];
 
+    for (var key in gazeDistribution) {
+      if ($('#' + key + '_name') !== null) {
+        $('#' + key + '_name').innerHTML = currentNameMap[key];
+      }
+    }
+
+    if (gaze in gazeDistribution) {
+      $('#' + target + '_name').innerHTML = currentNameMap[target] + ' -> ' + currentNameMap[gaze];
+    }
+
+  } else {
+    for (var key in gazeDistribution) {
+      if ($('#' + key + '_name') !== null) {
+        $('#' + key + '_name').innerHTML = currentNameMap[key];
+      }
+    }
   }
 }
 
@@ -1054,16 +1139,16 @@ function updateCamVideoProducerStatsDisplay() {
   if (!camVideoProducer || camVideoProducer.paused) {
     return;
   }
-  makeProducerTrackSelector({
-    internalTag: 'local-cam-tracks',
-    container: tracksEl,
-    peerId: myPeerId,
-    producerId: camVideoProducer.id,
-    currentLayer: camVideoProducer.maxSpatialLayer,
-    layerSwitchFunc: (i) => {
-      console.log('client set layers for cam stream');
-      camVideoProducer.setMaxSpatialLayer(i) }
-  });
+  // makeProducerTrackSelector({
+  //   internalTag: 'local-cam-tracks',
+  //   container: tracksEl,
+  //   peerId: myPeerId,
+  //   producerId: camVideoProducer.id,
+  //   currentLayer: camVideoProducer.maxSpatialLayer,
+  //   layerSwitchFunc: (i) => {
+  //     console.log('client set layers for cam stream');
+  //     camVideoProducer.setMaxSpatialLayer(i) }
+  // });
 }
 
 function updateScreenVideoProducerStatsDisplay() {

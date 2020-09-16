@@ -19,14 +19,15 @@ input[type="checkbox"] {
 }
 
 .participant_div {
-  position: relative;
-} 
-.participant_video {
-  position: absolute;
   height: 40%;
   width: 25%;
+  margin: 10px;
+  border: 3px solid rgb(255, 255, 255);
+} 
+.participant_video {
+  height: 100%;
+  width: 100%;
   opacity: 0.3;
-  margin: auto;
 } 
 
 #outgoing-cam-streams-ctrl {
@@ -92,10 +93,19 @@ input[type="checkbox"] {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
-#remote-video {
+#remote-video-obs1 {
   padding: 5px;
   display: flex;
   height: 100vh;
+  width: 90%;
+  margin: auto;
+  flex-wrap: wrap;
+}
+
+#remote-video {
+  padding: 5px;
+  display: flex;
+  height: 100%;
   width: 90%;
   margin: auto;
   flex-wrap: wrap;

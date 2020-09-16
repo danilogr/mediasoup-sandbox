@@ -13,6 +13,7 @@ const warn = debugModule('demo-app:WARN');
 const err = debugModule('demo-app:ERROR');
 
 const password = 'gs0915'
+const TEST = true;
 
 // one mediasoup worker and router
 //
@@ -765,10 +766,10 @@ expressApp.post('/signaling/gaze', async (req, res) => {
 expressApp.post('/signaling/login', async (req, res) => {
   try {
     let { username, pwd, peerId } = req.body;
-    if (pwd !== password) {
+    if (pwd !== password && !TEST) {
       res.send({result: "denied"});
     } else {
-      nameMap[peerId] = username;
+      nameMap['participant_' + peerId] = username;
       res.send({result: "OK"});
     }
   } catch (e) {

@@ -784,12 +784,12 @@ export async function autoSubscribe(sortedPeers) {
     if (peer.id === myPeerId) {
       continue;
     }
-    await sleep(2500);
+    await sleep(1500);
     for (let [mediaTag, info] of Object.entries(peer.media)) {
       let consumer = findConsumerForTrack(peer.id, mediaTag);
       if (!consumer) {
         console.log('Here!!! subscribe!!!peer.id' + peer.id + mediaTag);
-        subscribeToTrack(peer.id, mediaTag);
+        await subscribeToTrack(peer.id, mediaTag);
       }
     }
 

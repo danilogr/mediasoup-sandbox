@@ -766,11 +766,13 @@ expressApp.post('/signaling/gaze', async (req, res) => {
 expressApp.post('/signaling/login', async (req, res) => {
   try {
     let { username, pwd, peerId } = req.body;
-    if (pwd !== password && !TEST) {
-      res.send({result: "denied"});
+    if (username === '') {
+      res.send({ result: "empty" });
+    } else if (pwd !== password && !TEST) {
+      res.send({ result: "denied" });
     } else {
       nameMap['participant_' + peerId] = username;
-      res.send({result: "OK"});
+      res.send({ result: "OK" });
     }
   } catch (e) {
     console.error('error in /signaling/login', e);

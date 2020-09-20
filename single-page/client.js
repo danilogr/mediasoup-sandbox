@@ -113,6 +113,9 @@ export async function joinRoom() {
   if (result === 'denied') {
     alert("Wrong password!");
     return;
+  } else if (result === 'empty') {
+    alert("Please enter your name!")
+    return;
   }
 
   log('join room');
@@ -408,12 +411,12 @@ export async function leaveRoom() {
 
   // hacktastically restore ui to initial state
   $('#join-control').style.display = 'initial';
-  $('#send-camera').style.display = 'initial';
-  $('#stop-streams').style.display = 'none';
+  // $('#send-camera').style.display = 'initial';
+  // $('#stop-streams').style.display = 'none';
   $('#remote-video').innerHTML = '';
-  $('#share-screen').style.display = 'initial';
-  $('#local-screen-pause-ctrl').style.display = 'none';
-  $('#local-screen-audio-pause-ctrl').style.display = 'none';
+  // $('#share-screen').style.display = 'initial';
+  // $('#local-screen-pause-ctrl').style.display = 'none';
+  // $('#local-screen-audio-pause-ctrl').style.display = 'none';
   showCameraInfo();
   updateCamVideoProducerStatsDisplay();
   // updateScreenVideoProducerStatsDisplay();
@@ -673,7 +676,7 @@ async function pollAndUpdate() {
   let thisPeersList = sortPeers(peers),
       lastPeersList = sortPeers(lastPollSyncData);
   if (!deepEqual(thisPeersList, lastPeersList)) {
-    updatePeersDisplay(peers, thisPeersList);
+    await updatePeersDisplay(peers, thisPeersList);
     autoSubscribe(thisPeersList);
   }
 
@@ -808,7 +811,7 @@ export async function updatePeersDisplay(peersInfo = lastPollSyncData,
     let consumer = findConsumerForTrack(myPeerId, 'cam-video');
     if (!consumer) {
       console.log('Here!!! subscribe!!!');
-      subscribeToTrack(myPeerId, 'cam-video');
+      await subscribeToTrack(myPeerId, 'cam-video');
     }
   }
 
@@ -1094,6 +1097,9 @@ function updateGazeInfo(target, gazeMap) {
     gazeDistribution['participant_' + key] = 0
   }
   for (var key in gazeMap) {
+    if (!(key in gazeDistribution)) {
+      continue;
+    }
     const gaze = gazeMap[key];
     if ((gaze === '') || (gaze === key)) {
       // console.log('here!!!!');

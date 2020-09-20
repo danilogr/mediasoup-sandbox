@@ -7,8 +7,8 @@ module.exports = {
 
   // ssl certs. we'll start as http instead of https if we don't have
   // these
-  sslCrt: 'server.crt',//'/Users/williamwang/server.crt',
-  sslKey: 'server.key', //'/Users/williamwang/server.key',
+  sslCrt: 'server.crt', // 'local.crt',
+  sslKey: 'server.key', // 'local.key',
 
   mediasoup: {
     worker: {

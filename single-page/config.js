@@ -2,20 +2,20 @@ module.exports = {
   // http server ip, port, and peer timeout constant
   //
   /*  For prod  */
-  // httpIp: '0.0.0.0',//'127.0.0.1',
+  httpIp: '0.0.0.0',//'127.0.0.1',
   /*  For local dev  */
-  httpIp: '127.0.0.1',
+  // httpIp: '127.0.0.1',
   httpPort: 3000,
   httpPeerStale: 15000,
 
   // ssl certs. we'll start as http instead of https if we don't have
   // these
   /*  For prod  */
-  // sslCrt: '/etc/letsencrypt/live/gazescape.com/fullchain.pem',
-  // sslKey: '/etc/letsencrypt/live/gazescape.com/privkey.pem',
+  sslCrt: '/etc/letsencrypt/live/gazescape.com/fullchain.pem',
+  sslKey: '/etc/letsencrypt/live/gazescape.com/privkey.pem',
   /*  For local dev  */
-  sslCrt: 'local.crt',
-  sslKey: 'local.key',
+  // sslCrt: 'local.crt',
+  // sslKey: 'local.key',
 
   mediasoup: {
     worker: {
@@ -87,9 +87,9 @@ module.exports = {
     webRtcTransport: {
       listenIps: [
       /*  For local dev  */
-        { ip: '127.0.0.1', announcedIp: null },
+        // { ip: '127.0.0.1', announcedIp: null },
       /*  For prod  */
-      //  { ip: '172.31.4.15', announcedIp: '54.153.34.26' },
+       { ip: '172.31.4.15', announcedIp: '54.153.34.26' },
 
       ],
       initialAvailableOutgoingBitrate: 800000,

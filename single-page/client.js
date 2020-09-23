@@ -924,9 +924,12 @@ function addVideoAudio(consumer) {
   let div = document.createElement('div');
   div.setAttribute('class', 'participant_div');
   div.setAttribute('id', 'participant_' + consumer.appData.peerId + '_div');
+  let namediv = document.createElement('div');
+  namediv.setAttribute('class', 'participant_name_div')
   let nametag = document.createElement('span');
   nametag.setAttribute('id', 'participant_' + consumer.appData.peerId + '_name');
   nametag.innerHTML = currentNameMap['participant_' + consumer.appData.peerId];
+  namediv.appendChild(nametag);
   let el = document.createElement(consumer.kind);
   // set some attributes on our audio and video elements to make
   // mobile Safari happy. note that for audio to play you need to be
@@ -941,7 +944,7 @@ function addVideoAudio(consumer) {
     el.setAttribute('autoplay', true);
   }
   div.appendChild(el);
-  div.appendChild(nametag);
+  div.appendChild(namediv);
   $(`#remote-${consumer.kind}`).appendChild(div);
   el.srcObject = new MediaStream([ consumer.track.clone() ]);
   el.consumer = consumer;
@@ -997,9 +1000,13 @@ export async function getCurrentDeviceId() {
 }
 
 function updateActiveSpeaker() {
-  $$('.participant_div').forEach((el) => {
-    el.classList.remove('active-speaker');
+
+  $$('.voice_icon_style').forEach((el) => {
+    el.remove();
   })
+  // $$('.participant_div').forEach((el) => {
+  //   el.classList.remove('active-speaker');
+  // })
   // $$('.track-subscribe').forEach((el) => {
   //   el.classList.remove('active-speaker');
   // });
@@ -1009,9 +1016,18 @@ function updateActiveSpeaker() {
   //   });
   // }
   if (currentActiveSpeaker.peerId) {
-    if ($(`#participant_${currentActiveSpeaker.peerId}_div`) !== null)
-      $(`#participant_${currentActiveSpeaker.peerId}_div`).classList.add('active-speaker');
+    if ($(`#participant_${currentActiveSpeaker.peerId}_name`) !== null) {
+      var img = document.createElement('img');
+      img.setAttribute('class', 'voice_icon_style');
+      img.setAttribute('src', 'voice_icon.png');
+      $(`#participant_${currentActiveSpeaker.peerId}_name`).parentNode.appendChild(img);
+    }
+      
   }
+  // if (currentActiveSpeaker.peerId) {
+  //   if ($(`#participant_${currentActiveSpeaker.peerId}_div`) !== null)
+  //     $(`#participant_${currentActiveSpeaker.peerId}_div`).classList.add('active-speaker');
+  // }
 }
 
 export async function sendGazeDirection() {
@@ -1101,6 +1117,7 @@ function updateGazeInfo(target, gazeMap) {
       continue;
     }
     const gaze = gazeMap[key];
+
     if ((gaze === '') || (gaze === key)) {
       // console.log('here!!!!');
       continue;
@@ -1110,12 +1127,30 @@ function updateGazeInfo(target, gazeMap) {
     } else {
       gazeDistribution[gaze] = 0;
     }
+
+
   }
 
+  /*
+    Plot gaze distribution and gaze follower
+  */
   for (var key in gazeDistribution) {
-    if ($('#' + key) !== null)
+    if ($('#' + key) !== null) {
       $('#' + key).style.opacity = 0.3 + gazeDistribution[key] * 0.7;
+    }
+    const gaze = gazeMap[key];
+    if (gaze == 'participant_' + myPeerId) {
+      $(`#${key}`).classList.add('active-speaker');
+    } else {
+      $$('.participant_video').forEach((el) => {
+        el.classList.remove('follower');
+      })
+    }
   }
+
+  /* 
+    Plot target's gaze direction 
+   */
   if (target in gazeMap) {
     const gaze = gazeMap[target];
 

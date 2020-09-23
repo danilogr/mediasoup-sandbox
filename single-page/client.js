@@ -40,6 +40,7 @@ export async function showCoords(event) {
   var cY = event.clientY;
   gazeX = cX;//GazeData.GazeX;
   gazeY = cY;//GazeData.GazeY;
+  console.log('clicked!!!');
 }
 
 function processGaze(GazeData) {
@@ -1004,17 +1005,7 @@ function updateActiveSpeaker() {
   $$('.voice_icon_style').forEach((el) => {
     el.remove();
   })
-  // $$('.participant_div').forEach((el) => {
-  //   el.classList.remove('active-speaker');
-  // })
-  // $$('.track-subscribe').forEach((el) => {
-  //   el.classList.remove('active-speaker');
-  // });
-  // if (currentActiveSpeaker.peerId) {
-  //   $(`.track-subscribe-${currentActiveSpeaker.peerId}`).forEach((el) => {
-  //     el.classList.add('active-speaker');
-  //   });
-  // }
+
   if (currentActiveSpeaker.peerId) {
     if ($(`#participant_${currentActiveSpeaker.peerId}_name`) !== null) {
       var img = document.createElement('img');
@@ -1024,10 +1015,21 @@ function updateActiveSpeaker() {
     }
       
   }
-  // if (currentActiveSpeaker.peerId) {
-  //   if ($(`#participant_${currentActiveSpeaker.peerId}_div`) !== null)
-  //     $(`#participant_${currentActiveSpeaker.peerId}_div`).classList.add('active-speaker');
-  // }
+}
+
+function findAbsolutePosition(htmlElement) {
+  var x = htmlElement.offsetLeft;
+  var y = htmlElement.offsetTop;
+  for (var x = 0, y = 0, el = htmlElement;
+    el != null;
+    el = el.offsetParent) {
+    x += el.offsetLeft;
+    y += el.offsetTop;
+  }
+  return {
+    "left": x,
+    "top": y
+  };
 }
 
 export async function sendGazeDirection() {
@@ -1039,8 +1041,10 @@ export async function sendGazeDirection() {
     if (!vid.id.includes('participant')) {
       continue;
     }
-    const left = vid.offsetLeft;
-    const top = vid.offsetTop;
+    let {left, top} = findAbsolutePosition(vid);
+    const left_ = vid.offsetLeft;
+    const top_ = vid.offsetTop;
+    // console.log("compare positions:", left, left_, top, top_);
     const w = vid.offsetWidth;
     const h = vid.offsetHeight;
     // console.log(left, top, left+w, top+h, 'x,y:', x, y);
@@ -1049,7 +1053,7 @@ export async function sendGazeDirection() {
       break;
     }
   }
-  // console.log('target is ' + target);
+  console.log('target is ' + target);
   let { gazeMap } = await sig('gaze', { src: 'participant_' + myPeerId, tar: target });
   // console.log(gazeMap);
   return {target, gazeMap};
@@ -1127,52 +1131,163 @@ function updateGazeInfo(target, gazeMap) {
     } else {
       gazeDistribution[gaze] = 0;
     }
-
-
   }
 
   /*
     Plot gaze distribution and gaze follower
   */
+  $$('.participant_div').forEach((el) => {
+    el.classList.remove('audience');
+  })
   for (var key in gazeDistribution) {
     if ($('#' + key) !== null) {
       $('#' + key).style.opacity = 0.3 + gazeDistribution[key] * 0.7;
     }
     const gaze = gazeMap[key];
-    if (gaze == 'participant_' + myPeerId) {
-      $(`#${key}`).classList.add('active-speaker');
-    } else {
-      $$('.participant_video').forEach((el) => {
-        el.classList.remove('follower');
-      })
+    if (gaze === 'participant_' + myPeerId) {
+      $(`#${key}_div`).classList.add('audience');
+      // console.log(currentNameMap[key] + ' is looking at me!');
     }
   }
 
   /* 
     Plot target's gaze direction 
    */
+  if ($('#svg-canvas') !== null) {
+    $('#svg-canvas').remove();
+  }
   if (target in gazeMap) {
     const gaze = gazeMap[target];
+    // for (var key in gazeDistribution) {
+    //   if ($('#' + key + '_name') !== null) {
+    //     $('#' + key + '_name').innerHTML = currentNameMap[key];
+    //   }
+    // }
+    if ((gaze in gazeDistribution) && (gaze !== target)) {
+      let gazeleft = findAbsolutePosition($(`#${gaze}_div`)).left;
+      let tarleft = findAbsolutePosition($(`#${target}_div`)).left;
 
-    for (var key in gazeDistribution) {
-      if ($('#' + key + '_name') !== null) {
-        $('#' + key + '_name').innerHTML = currentNameMap[key];
+      if (gazeleft <= tarleft) {
+        connectDivs($(`#${gaze}_div`), $(`#${target}_div`), 'blue', 2);
+      } else {
+        connectDivs($(`#${target}_div`), $(`#${gaze}_div`), 'blue', 2);
       }
+      // $('#' + target + '_name').innerHTML = currentNameMap[target] + ' -> ' + currentNameMap[gaze];
     }
-
-    if (gaze in gazeDistribution) {
-      $('#' + target + '_name').innerHTML = currentNameMap[target] + ' -> ' + currentNameMap[gaze];
-    }
+    
 
   } else {
-    for (var key in gazeDistribution) {
-      if ($('#' + key + '_name') !== null) {
-        $('#' + key + '_name').innerHTML = currentNameMap[key];
-      }
-    }
+    // for (var key in gazeDistribution) {
+    //   if ($('#' + key + '_name') !== null) {
+    //     $('#' + key + '_name').innerHTML = currentNameMap[key];
+    //   }
+    // }
   }
 }
 
+
+function createSVG() {
+  var svg = document.getElementById("svg-canvas");
+  if (null == svg) {
+    svg = document.createElementNS("http://www.w3.org/2000/svg",
+      "svg");
+    svg.setAttribute('id', 'svg-canvas');
+    svg.setAttribute('style', 'position:absolute;top:0px;left:0px;pointer-events:none;');
+    svg.setAttribute('width', document.body.clientWidth);
+    svg.setAttribute('height', document.body.clientHeight);
+    svg.setAttributeNS("http://www.w3.org/2000/xmlns/",
+      "xmlns:xlink",
+      "http://www.w3.org/1999/xlink");
+    document.body.prepend(svg);
+  }
+  return svg;
+}
+
+function drawCircle(x, y, radius, color) {
+  var svg = createSVG();
+  var shape = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  shape.setAttributeNS(null, "cx", x);
+  shape.setAttributeNS(null, "cy", y);
+  shape.setAttributeNS(null, "r", radius);
+  shape.setAttributeNS(null, "fill", color);
+  svg.appendChild(shape);
+}
+
+function connectDivs(leftElem, rightElem, color, tension) {
+  var leftPos = findAbsolutePosition(leftElem);
+  var x1 = leftPos.left;
+  var y1 = leftPos.top;
+  x1 += leftElem.offsetWidth;
+  y1 += (leftElem.offsetHeight / 2);
+
+  var rightPos = findAbsolutePosition(rightElem);
+  var x2 = rightPos.left;
+  var y2 = rightPos.top;
+  y2 += (rightElem.offsetHeight / 2);
+
+  var width = x2 - x1;
+  var height = y2 - y1;
+
+  drawCircle(x1, y1, 3, color);
+  drawCircle(x2, y2, 3, color);
+  drawCurvedLine(x1, y1, x2, y2, color, tension);
+}
+
+function drawCurvedLine(x1, y1, x2, y2, color, tension) {
+  var svg = createSVG();
+  var shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  if (tension < 0) {
+    var delta = (y2 - y1) * tension;
+    var hx1 = x1;
+    var hy1 = y1 - delta;
+    var hx2 = x2;
+    var hy2 = y2 + delta;
+    var path = "M " + x1 + " " + y1 +
+      " C " + hx1 + " " + hy1 + " "
+      + hx2 + " " + hy2 + " "
+      + x2 + " " + y2;
+  } else {
+    var delta = (x2 - x1) * tension;
+    var hx1 = x1 + delta;
+    var hy1 = y1;
+    var hx2 = x2 - delta;
+    var hy2 = y2;
+    var path = "M " + x1 + " " + y1 +
+      " C " + hx1 + " " + hy1 + " "
+      + hx2 + " " + hy2 + " "
+      + x2 + " " + y2;
+  }
+  shape.setAttributeNS(null, "d", path);
+  shape.setAttributeNS(null, "fill", "none");
+  shape.setAttributeNS(null, "stroke", color);
+  svg.appendChild(shape);
+}
+
+function createTriangleMarker() {
+  if (markerInitialized)
+    return;
+  markerInitialized = true;
+  var svg = createSVG();
+  var defs = document.createElementNS('http://www.w3.org/2000/svg',
+    'defs');
+  svg.appendChild(defs);
+
+  var marker = document.createElementNS('http://www.w3.org/2000/svg',
+    'marker');
+  marker.setAttribute('id', 'triangle');
+  marker.setAttribute('viewBox', '0 0 10 10');
+  marker.setAttribute('refX', '0');
+  marker.setAttribute('refY', '5');
+  marker.setAttribute('markerUnits', 'strokeWidth');
+  marker.setAttribute('markerWidth', '10');
+  marker.setAttribute('markerHeight', '8');
+  marker.setAttribute('orient', 'auto');
+  var path = document.createElementNS('http://www.w3.org/2000/svg',
+    'path');
+  marker.appendChild(path);
+  path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+  defs.appendChild(marker);
+}
 
 function updateCamVideoProducerStatsDisplay() {
   let tracksEl = $('#camera-producer-stats');

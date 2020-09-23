@@ -1164,14 +1164,7 @@ function updateGazeInfo(target, gazeMap) {
     //   }
     // }
     if ((gaze in gazeDistribution) && (gaze !== target)) {
-      let gazeleft = findAbsolutePosition($(`#${gaze}_div`)).left;
-      let tarleft = findAbsolutePosition($(`#${target}_div`)).left;
-
-      if (gazeleft <= tarleft) {
-        connectDivs($(`#${gaze}_div`), $(`#${target}_div`), 'blue', 2);
-      } else {
-        connectDivs($(`#${target}_div`), $(`#${gaze}_div`), 'blue', 2);
-      }
+      connectDivs($(`#${target}_div`), $(`#${gaze}_div`), 'blue', 0.8);
       // $('#' + target + '_name').innerHTML = currentNameMap[target] + ' -> ' + currentNameMap[gaze];
     }
     
@@ -1213,20 +1206,35 @@ function drawCircle(x, y, radius, color) {
   svg.appendChild(shape);
 }
 
-function connectDivs(leftElem, rightElem, color, tension) {
-  var leftPos = findAbsolutePosition(leftElem);
-  var x1 = leftPos.left;
-  var y1 = leftPos.top;
-  x1 += leftElem.offsetWidth;
-  y1 += (leftElem.offsetHeight / 2);
+function connectDivs(elem1, elem2, color, tension) {
+  var pos1 = findAbsolutePosition(elem1);
+  var x1 = pos1.left;
+  var y1 = pos1.top;
+  var pos2 = findAbsolutePosition(elem2);
+  var x2 = pos2.left;
+  var y2 = pos2.top;
 
-  var rightPos = findAbsolutePosition(rightElem);
-  var x2 = rightPos.left;
-  var y2 = rightPos.top;
-  y2 += (rightElem.offsetHeight / 2);
+  if (y1 === y2) {
+    // same line
+    x1 += (elem1.offsetWidth / 2);
+    y1 += elem1.offsetHeight;
+    x2 += (elem2.offsetWidth / 2);
+    y2 += elem2.offsetHeight;
 
-  var width = x2 - x1;
-  var height = y2 - y1;
+  } else if (y1 < y2) {
+    // 1 is top, 2 is btm
+    x1 += (elem1.offsetWidth / 2);
+    y1 += elem1.offsetHeight;
+    x2 += (elem2.offsetWidth / 2);
+  } else {
+    // 1 is btm, 2 is top
+    x1 += (elem1.offsetWidth / 2);
+    x2 += (elem2.offsetWidth / 2);
+    y2 += elem2.offsetHeight;
+  }
+
+  // var width = x2 - x1;
+  // var height = y2 - y1;
 
   drawCircle(x1, y1, 3, color);
   drawCircle(x2, y2, 3, color);
@@ -1236,7 +1244,17 @@ function connectDivs(leftElem, rightElem, color, tension) {
 function drawCurvedLine(x1, y1, x2, y2, color, tension) {
   var svg = createSVG();
   var shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  if (tension < 0) {
+  if (y2 === y1) {
+    var delta = 20*tension;
+    var hx1 = x1;
+    var hy1 = y1 + delta;
+    var hx2 = x2;
+    var hy2 = y2 + delta;
+    var path = "M " + x1 + " " + y1 +
+      " C " + hx1 + " " + hy1 + " "
+      + hx2 + " " + hy2 + " "
+      + x2 + " " + y2;
+  } else if (tension < 0) {
     var delta = (y2 - y1) * tension;
     var hx1 = x1;
     var hy1 = y1 - delta;

@@ -11,8 +11,8 @@ module.exports = {
   // ssl certs. we'll start as http instead of https if we don't have
   // these
   /*  For prod  */
-  sslCrt: '/etc/letsencrypt/live/gazescape.com/fullchain.pem',
-  sslKey: '/etc/letsencrypt/live/gazescape.com/privkey.pem',
+  sslCrt: '/home/ubuntu/cert.pem',//'/etc/letsencrypt/live/gazescape.com/fullchain.pem',
+  sslKey: '/home/ubuntu/privkey.pem',//'/etc/letsencrypt/live/gazescape.com/privkey.pem',
   /*  For local dev  */
   // sslCrt: 'local.crt',
   // sslKey: 'local.key',

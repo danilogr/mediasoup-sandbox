@@ -39,6 +39,12 @@
     <!-- <button id="share-screen" onclick="Client.startScreenshare()">
       share screen
     </button> -->
+    <input id="viz1" type="checkbox" onchange="Client.changePeekaboo()"></input>
+    <label id="viz1_label">Peekaboo</label>
+    <input id="viz2" type="checkbox" onchange="Client.changeSpotlight()"></input>
+    <label id="viz2_label">Spotlight</label>
+    <input id="viz3" type="checkbox" onchange="Client.changeSpy()"></input>
+    <label id="viz3_label">Spy</label>
     <div id="outgoing-cam-streams-ctrl">
       <div>
         <!-- <input id="local-cam-checkbox" type="checkbox" checked
@@ -46,11 +52,7 @@
            <label id="local-cam-label">camera</label> -->
         <span id="camera-producer-stats" class="track-ctrl"></span>
       </div>
-      <!-- <div>
-        <input id="local-mic-checkbox" type="checkbox" checked
-                  onchange="Client.changeMicPaused()"></input>
-           <label id="local-mic-label">mic</label>
-      </div> -->
+
       <!-- <div id="local-screen-pause-ctrl">
            <input id="local-screen-checkbox" type="checkbox" checked
                   onchange="Client.changeScreenPaused()"></input>

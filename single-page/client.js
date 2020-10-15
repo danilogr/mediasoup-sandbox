@@ -33,7 +33,8 @@ export let device,
            consumers = [],
            pollingInterval,
            gazeX = 0,
-           gazeY = 0;
+           gazeY = 0,
+           justUnchecked = false;
 
 export async function showCoords(event) {
   var cX = event.clientX;
@@ -947,7 +948,14 @@ function addVideoAudio(consumer) {
   div.appendChild(el);
   div.appendChild(namediv);
   $(`#remote-${consumer.kind}`).appendChild(div);
-  el.srcObject = new MediaStream([ consumer.track.clone() ]);
+  if (consumer.appData.peerId !== myPeerId) {
+    el.srcObject = new MediaStream([consumer.track.clone()]); // TODO: don't subscribe your own video!!!
+  }
+  else {
+    el.srcObject = new MediaStream([localCam.getVideoTracks()[0]]);
+    console.log('HERE self-video!!!');
+  }
+    
   el.consumer = consumer;
   // let's "yield" and return before playing, rather than awaiting on
   // play() succeeding. play() will not succeed on a producer-paused
@@ -957,6 +965,9 @@ function addVideoAudio(consumer) {
     .catch((e) => {
       err(e);
     });
+  console.log(div.offsetWidth + "div's width!!!");
+  div.style.width = div.offsetWidth * 3 / 4 + 'px';
+
 }
 
 function removeVideoAudio(consumer) {
@@ -1002,19 +1013,15 @@ export async function getCurrentDeviceId() {
 
 function updateActiveSpeaker() {
 
-  $$('.voice_icon_style').forEach((el) => {
-    el.remove();
+  $$('.participant_div').forEach((el) => {
+    el.classList.remove('speaker');
   })
-
   if (currentActiveSpeaker.peerId) {
     if ($(`#participant_${currentActiveSpeaker.peerId}_name`) !== null) {
-      var img = document.createElement('img');
-      img.setAttribute('class', 'voice_icon_style');
-      img.setAttribute('src', 'voice_icon.png');
-      $(`#participant_${currentActiveSpeaker.peerId}_name`).parentNode.appendChild(img);
+      $(`#participant_${currentActiveSpeaker.peerId}_div`).classList.add('speaker');
     }
-      
   }
+
 }
 
 function findAbsolutePosition(htmlElement) {
@@ -1109,6 +1116,67 @@ ctx.stroke();
    * 
    */
 }
+export async function changePeekaboo() {
+  // remove all viz if ckecked -> unchecked
+  if (!$('#viz1').checked) {
+    $$('.x_icon_style').forEach((el) => {
+      el.remove();
+    });
+  }
+}
+
+function updatePeekaboo(gazeDistribution, gazeMap_) {
+  $$('.x_icon_style').forEach((el) => {
+    el.remove();
+  });
+
+  for (var key in gazeDistribution) {
+    const gaze = gazeMap_[key];
+    if (gaze === 'participant_' + myPeerId) {
+      var img = document.createElement('img');
+      img.setAttribute('class', 'x_icon_style');
+      img.setAttribute('src', 'x_icon.png');
+      $(`#${key}_name`).parentNode.appendChild(img);
+    }
+  }
+}
+
+export async function changeSpotlight() {
+  // remove all viz if ckecked -> unchecked
+  if (!$('#viz2').checked) {
+    justUnchecked = true;
+  }
+}
+
+function updateSpotlight(distributionMap) {
+  for (var key in distributionMap) {
+    if ($('#' + key) !== null) {
+      $('#' + key).style.opacity = 0.3 + distributionMap[key] * 0.7;
+    }
+  }
+}
+
+export async function changeSpy() {
+  // remove all viz if ckecked -> unchecked
+  if (!$('#viz3').checked) {
+    if ($('#svg-canvas') !== null) {
+      $('#svg-canvas').remove();
+    }
+  }
+}
+
+function updateSpy(target, gazeMap_, distributionMap) {
+  if ($('#svg-canvas') !== null) {
+    $('#svg-canvas').remove();
+  }
+  if (target in gazeMap_) {
+    const gaze = gazeMap_[target];
+    if ((gaze in distributionMap) && (gaze !== target)) {
+      connectDivs($(`#${target}_div`), $(`#${gaze}_div`), 'blue', 0.8);
+      // $('#' + target + '_name').innerHTML = currentNameMap[target] + ' -> ' + currentNameMap[gaze];
+    }
+  }
+}
 
 function updateGazeInfo(target, gazeMap) {
   const gazeDistribution = {};
@@ -1134,48 +1202,33 @@ function updateGazeInfo(target, gazeMap) {
   }
 
   /*
-    Plot gaze distribution and gaze follower
+    Plot gaze follower
   */
-  $$('.participant_div').forEach((el) => {
-    el.classList.remove('audience');
-  })
-  for (var key in gazeDistribution) {
-    if ($('#' + key) !== null) {
-      $('#' + key).style.opacity = 0.3 + gazeDistribution[key] * 0.7;
-    }
-    const gaze = gazeMap[key];
-    if (gaze === 'participant_' + myPeerId) {
-      $(`#${key}_div`).classList.add('audience');
-      // console.log(currentNameMap[key] + ' is looking at me!');
-    }
+  if ($(`#viz1`).checked) {
+    updatePeekaboo(gazeDistribution, gazeMap);
+  }
+  /*
+    Plot gaze distribution
+  */
+  if ($(`#viz2`).checked) {
+    updateSpotlight(gazeDistribution);
+  }
+  /*
+    Plot target's gaze direction
+  */
+  if ($(`#viz3`).checked) {
+    updateSpy(target, gazeMap, gazeDistribution);
   }
 
-  /* 
-    Plot target's gaze direction 
-   */
-  if ($('#svg-canvas') !== null) {
-    $('#svg-canvas').remove();
-  }
-  if (target in gazeMap) {
-    const gaze = gazeMap[target];
-    // for (var key in gazeDistribution) {
-    //   if ($('#' + key + '_name') !== null) {
-    //     $('#' + key + '_name').innerHTML = currentNameMap[key];
-    //   }
-    // }
-    if ((gaze in gazeDistribution) && (gaze !== target)) {
-      connectDivs($(`#${target}_div`), $(`#${gaze}_div`), 'blue', 0.8);
-      // $('#' + target + '_name').innerHTML = currentNameMap[target] + ' -> ' + currentNameMap[gaze];
+  if (justUnchecked) {
+    for (var key in gazeDistribution) {
+      if ($('#' + key) !== null) {
+        $('#' + key).style.opacity = 1;
+      }
     }
-    
-
-  } else {
-    // for (var key in gazeDistribution) {
-    //   if ($('#' + key + '_name') !== null) {
-    //     $('#' + key + '_name').innerHTML = currentNameMap[key];
-    //   }
-    // }
+    justUnchecked = false;
   }
+
 }
 
 

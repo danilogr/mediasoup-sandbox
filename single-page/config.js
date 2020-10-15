@@ -11,11 +11,11 @@ module.exports = {
   // ssl certs. we'll start as http instead of https if we don't have
   // these
   /*  For prod  */
-  sslCrt: '/home/ubuntu/cert.pem',//'/etc/letsencrypt/live/gazescape.com/fullchain.pem',
-  sslKey: '/home/ubuntu/privkey.pem',//'/etc/letsencrypt/live/gazescape.com/privkey.pem',
+  // sslCrt: '/home/ubuntu/cert.pem',//'/etc/letsencrypt/live/gazescape.com/fullchain.pem',
+  // sslKey: '/home/ubuntu/privkey.pem',//'/etc/letsencrypt/live/gazescape.com/privkey.pem',
   /*  For local dev  */
-  // sslCrt: 'local.crt',
-  // sslKey: 'local.key',
+  sslCrt: 'local.crt',
+  sslKey: 'local.key',
 
   mediasoup: {
     worker: {
@@ -87,9 +87,9 @@ module.exports = {
     webRtcTransport: {
       listenIps: [
       /*  For local dev  */
-        // { ip: '127.0.0.1', announcedIp: null },
+        { ip: '127.0.0.1', announcedIp: null },
       /*  For prod  */
-       { ip: '172.31.4.15', announcedIp: '54.153.34.26' },
+      //  { ip: '172.31.4.15', announcedIp: '54.153.34.26' },
 
       ],
       initialAvailableOutgoingBitrate: 800000,

@@ -18,23 +18,33 @@ input[type="checkbox"] {
   white-space: nowrap;
 }
 
+.obs_participant_div {
+  height: 300px;
+  width: 400px;
+  margin: 10px;
+  border: 3px solid rgb(255, 255, 255);
+  border-radius: 25px;
+} 
+
 .participant_div {
-  height: 40%;
+  height: 30%;
   width: 25%;
   margin: 10px;
   border: 3px solid rgb(255, 255, 255);
+  border-radius: 25px;
 } 
+
 .participant_video {
   height: 100%;
   width: 100%;
-  opacity: 0.3;
+  border-radius: 25px;
 } 
 
 .participant_name_div {
   height:25;
 }
 
-.voice_icon_style {
+.x_icon_style {
   height:25;
   width:25;
   float: right;
@@ -132,7 +142,7 @@ input[type="checkbox"] {
   vertical-align: middle;
 }
 
-.audience {
+.speaker {
   /* background-color: yellow; */
   border: 3px solid rgb(255, 208, 0);
 }

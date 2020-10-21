@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+.participant_div {
+  height: 240px;
+  width: 320px;
+  margin: 10px;
+  margin-bottom: 50px;
+  border: 5px solid rgb(0, 0, 0);
+  border-radius: 25px;
+} 
+.participant_video {
+  height: 100%;
+  width: 100%;
+  /* position: absolute; */
+  border-radius: 25px;
+} 
+#remote-video {
+  padding: 5px;
+  display: flex;
+  height: 100%;
+  width: 90%;
+  margin: auto;
+  flex-wrap: wrap;
+}
+    </style>
+    
+</head>
+<body>
+
+    <h1>My First Heading</h1>
+
+    <p>My first paragraph.</p>
+
+<div id='remote-video'>
+    <div id='d1' class="participant_div">
+    </div>
+
+    <div id='d2' class="participant_div">
+    </div>
+    <div id='d3' class="participant_div">
+    </div>
+    <div id='d4' class="participant_div">
+    </div>
+</div>
+
+<script>
+    var markerInitialized = false;
+    function createSVG() {
+        var svg = document.getElementById("svg-canvas");
+        if (null == svg) {
+            svg = document.createElementNS("http://www.w3.org/2000/svg",
+                "svg");
+            svg.setAttribute('id', 'svg-canvas');
+            svg.setAttribute('style', 'position:absolute;top:0px;left:0px;pointer-events:none;');
+            svg.setAttribute('width', document.body.clientWidth);
+            svg.setAttribute('height', '1000px');
+            svg.setAttributeNS("http://www.w3.org/2000/xmlns/",
+                "xmlns:xlink",
+                "http://www.w3.org/1999/xlink");
+            document.body.prepend(svg);
+        }
+        return svg;
+    }
+
+    function connectDivs(elem1, elem2, color, tension) {
+        var pos1 = findAbsolutePosition(elem1);
+        var x1 = pos1.left;
+        var y1 = pos1.top;
+        var pos2 = findAbsolutePosition(elem2);
+        var x2 = pos2.left;
+        var y2 = pos2.top;
+
+        if (y1 === y2) {
+            // same line
+            x1 += (elem1.offsetWidth / 2);
+            y1 += elem1.offsetHeight;
+            x2 += (elem2.offsetWidth / 2);
+            y2 += elem2.offsetHeight;
+
+        } else if (y1 < y2) {
+            // 1 is top, 2 is btm
+            x1 += (elem1.offsetWidth / 2);
+            y1 += elem1.offsetHeight;
+            x2 += (elem2.offsetWidth / 2);
+        } else {
+            // 1 is btm, 2 is top
+            x1 += (elem1.offsetWidth / 2);
+            x2 += (elem2.offsetWidth / 2);
+            y2 += elem2.offsetHeight;
+        }
+
+        // var width = x2 - x1;
+        // var height = y2 - y1;
+
+        drawCircle(x1, y1, 5, color);
+        // drawCircle(x2, y2, 3, color);
+        // createTriangleMarker(x2, y2);
+        drawCurvedLine(x1, y1, x2, y2, color, tension);
+    }
+
+    function drawCurvedLine(x1, y1, x2, y2, color, tension) {
+        var svg = createSVG();
+        var shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        if (y2 === y1) {
+            var delta = 20 * tension;
+            var hx1 = x1;
+            var hy1 = y1 + delta;
+            var hx2 = x2;
+            var hy2 = y2 + delta;
+            var path = "M " + x1 + " " + y1 +
+                " C " + hx1 + " " + hy1 + " "
+                + hx2 + " " + hy2 + " "
+                + x2 + " " + y2;
+        } else if (x1 < x2) {
+            var delta = 20 * tension;
+            var hx1 = x1;
+            var hy1 = y1 - delta;
+            var hx2 = x2;
+            var hy2 = y2 + delta;
+            var path = "M " + x1 + " " + y1 +
+                " C " + hx1 + " " + hy1 + " "
+                + hx2 + " " + hy2 + " "
+                + x2 + " " + y2;
+        } else {
+            var delta = 20 * tension;
+            var hx1 = x1;
+            var hy1 = y1 + delta;
+            var hx2 = x2;
+            var hy2 = y2 - delta;
+            var path = "M " + x1 + " " + y1 +
+                " C " + hx1 + " " + hy1 + " "
+                + hx2 + " " + hy2 + " "
+                + x2 + " " + y2;
+        } 
+        shape.setAttributeNS(null, "d", path);
+        shape.setAttributeNS(null, "fill", "none");
+        shape.setAttributeNS(null, "stroke", color);
+        shape.setAttributeNS(null, "stroke-width", 4);
+        shape.setAttributeNS(null, "stroke-linecap", 'round');
+        svg.appendChild(shape);
+    }
+
+    function createTriangleMarker(x, y) {
+        if (markerInitialized)
+            return;
+        markerInitialized = true;
+        var svg = createSVG();
+        var defs = document.createElementNS('http://www.w3.org/2000/svg',
+            'defs');
+        svg.appendChild(defs);
+
+        var marker = document.createElementNS('http://www.w3.org/2000/svg',
+            'marker');
+        marker.setAttribute('id', 'triangle');
+        marker.setAttribute('viewBox', '0 0 10 10');
+        marker.setAttribute('refX', x);
+        marker.setAttribute('refY', y);
+        marker.setAttribute('markerUnits', 'strokeWidth');
+        marker.setAttribute('markerWidth', '10');
+        marker.setAttribute('markerHeight', '8');
+        marker.setAttribute('orient', 'auto');
+        var path = document.createElementNS('http://www.w3.org/2000/svg',
+            'path');
+        marker.appendChild(path);
+        path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+        defs.appendChild(marker);
+    }
+    function drawCircle(x, y, radius, color) {
+            var svg = createSVG();
+            var shape = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            shape.setAttributeNS(null, "cx", x);
+            shape.setAttributeNS(null, "cy", y);
+            shape.setAttributeNS(null, "r", radius);
+            shape.setAttributeNS(null, "fill", color);
+            svg.appendChild(shape);
+        }
+    function findAbsolutePosition(htmlElement) {
+        var x = htmlElement.offsetLeft;
+        var y = htmlElement.offsetTop;
+        for (var x = 0, y = 0, el = htmlElement;
+            el != null;
+            el = el.offsetParent) {
+            x += el.offsetLeft;
+            y += el.offsetTop;
+        }
+        return {
+            "left": x,
+            "top": y
+        };
+    }
+    window.onload = function () {
+        connectDivs(document.getElementById('d2'), document.getElementById('d1'), 'blue', 2);
+        // connectDivs(document.getElementById('d3'), document.getElementById('d2'), 'blue', 2);
+        connectDivs(document.getElementById('d4'), document.getElementById('d3'), 'blue', 2);
+    }
+
+</script>
+
+</body>
+
+</html>

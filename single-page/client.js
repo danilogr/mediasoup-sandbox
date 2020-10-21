@@ -947,6 +947,8 @@ function addVideoAudio(consumer) {
   }
   div.appendChild(el);
   div.appendChild(namediv);
+  // console.log(div.offsetWidth + "div's width!!!");
+  // div.style.width = div.offsetWidth * 3 / 4 + 'px';
   $(`#remote-${consumer.kind}`).appendChild(div);
   if (consumer.appData.peerId !== myPeerId) {
     el.srcObject = new MediaStream([consumer.track.clone()]); // TODO: don't subscribe your own video!!!
@@ -965,8 +967,6 @@ function addVideoAudio(consumer) {
     .catch((e) => {
       err(e);
     });
-  console.log(div.offsetWidth + "div's width!!!");
-  div.style.width = div.offsetWidth * 3 / 4 + 'px';
 
 }
 
@@ -1172,7 +1172,7 @@ function updateSpy(target, gazeMap_, distributionMap) {
   if (target in gazeMap_) {
     const gaze = gazeMap_[target];
     if ((gaze in distributionMap) && (gaze !== target)) {
-      connectDivs($(`#${target}_div`), $(`#${gaze}_div`), 'blue', 0.8);
+      connectDivs($(`#${target}_div`), $(`#${gaze}_div`), 'blue', 2);
       // $('#' + target + '_name').innerHTML = currentNameMap[target] + ' -> ' + currentNameMap[gaze];
     }
   }
@@ -1289,8 +1289,8 @@ function connectDivs(elem1, elem2, color, tension) {
   // var width = x2 - x1;
   // var height = y2 - y1;
 
-  drawCircle(x1, y1, 3, color);
-  drawCircle(x2, y2, 3, color);
+  drawCircle(x1, y1, 5, color);
+  // drawCircle(x2, y2, 3, color);
   drawCurvedLine(x1, y1, x2, y2, color, tension);
 }
 
@@ -1298,7 +1298,7 @@ function drawCurvedLine(x1, y1, x2, y2, color, tension) {
   var svg = createSVG();
   var shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
   if (y2 === y1) {
-    var delta = 20*tension;
+    var delta = 20 * tension;
     var hx1 = x1;
     var hy1 = y1 + delta;
     var hx2 = x2;
@@ -1307,8 +1307,8 @@ function drawCurvedLine(x1, y1, x2, y2, color, tension) {
       " C " + hx1 + " " + hy1 + " "
       + hx2 + " " + hy2 + " "
       + x2 + " " + y2;
-  } else if (tension < 0) {
-    var delta = (y2 - y1) * tension;
+  } else if (x1 < x2) {
+    var delta = 20 * tension;
     var hx1 = x1;
     var hy1 = y1 - delta;
     var hx2 = x2;
@@ -1318,11 +1318,11 @@ function drawCurvedLine(x1, y1, x2, y2, color, tension) {
       + hx2 + " " + hy2 + " "
       + x2 + " " + y2;
   } else {
-    var delta = (x2 - x1) * tension;
-    var hx1 = x1 + delta;
-    var hy1 = y1;
-    var hx2 = x2 - delta;
-    var hy2 = y2;
+    var delta = 20 * tension;
+    var hx1 = x1;
+    var hy1 = y1 + delta;
+    var hx2 = x2;
+    var hy2 = y2 - delta;
     var path = "M " + x1 + " " + y1 +
       " C " + hx1 + " " + hy1 + " "
       + hx2 + " " + hy2 + " "
@@ -1331,6 +1331,8 @@ function drawCurvedLine(x1, y1, x2, y2, color, tension) {
   shape.setAttributeNS(null, "d", path);
   shape.setAttributeNS(null, "fill", "none");
   shape.setAttributeNS(null, "stroke", color);
+  shape.setAttributeNS(null, "stroke-width", 4);
+  shape.setAttributeNS(null, "stroke-linecap", 'round');
   svg.appendChild(shape);
 }
 

@@ -5,8 +5,7 @@
 .participant_div {
   height: 240px;
   width: 320px;
-  margin: 10px;
-  margin-bottom: 50px;
+  margin: auto;
   border: 5px solid rgb(0, 0, 0);
   border-radius: 25px;
 } 
@@ -18,18 +17,20 @@
 } 
 #remote-video {
   padding: 5px;
-  display: flex;
   height: 100%;
   width: 90%;
   margin: auto;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-column-gap: 10%;
+  grid-row-gap: 20%;
 }
     </style>
     
 </head>
 <body>
 
-    <h1>My First Heading</h1>
+    <!-- <h1>My First Heading</h1> -->
 
     <p>My first paragraph.</p>
 
@@ -96,14 +97,17 @@
 
         drawCircle(x1, y1, 5, color);
         // drawCircle(x2, y2, 3, color);
-        // createTriangleMarker(x2, y2);
+        createTriangleMarker(color);
+
         drawCurvedLine(x1, y1, x2, y2, color, tension);
     }
 
     function drawCurvedLine(x1, y1, x2, y2, color, tension) {
         var svg = createSVG();
         var shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        var gap = 10;
         if (y2 === y1) {
+            y2 += gap;
             var delta = 20 * tension;
             var hx1 = x1;
             var hy1 = y1 + delta;
@@ -114,6 +118,11 @@
                 + hx2 + " " + hy2 + " "
                 + x2 + " " + y2;
         } else if (x1 < x2) {
+            if (y1 > y2) {
+                y2 += gap;
+            } else {
+                y2 -= gap;
+            }
             var delta = 20 * tension;
             var hx1 = x1;
             var hy1 = y1 - delta;
@@ -124,7 +133,15 @@
                 + hx2 + " " + hy2 + " "
                 + x2 + " " + y2;
         } else {
+            if (y1 > y2) {
+                y2 += gap;
+            } else {
+                y2 -= gap;
+            }
             var delta = 20 * tension;
+            if (x1 === x2) {
+                var delta = 0;
+            }
             var hx1 = x1;
             var hy1 = y1 + delta;
             var hx2 = x2;
@@ -137,12 +154,13 @@
         shape.setAttributeNS(null, "d", path);
         shape.setAttributeNS(null, "fill", "none");
         shape.setAttributeNS(null, "stroke", color);
-        shape.setAttributeNS(null, "stroke-width", 4);
+        shape.setAttributeNS(null, "stroke-width", 3);
         shape.setAttributeNS(null, "stroke-linecap", 'round');
+        shape.setAttributeNS(null, "marker-end", "url(#triangle)");
         svg.appendChild(shape);
     }
 
-    function createTriangleMarker(x, y) {
+    function createTriangleMarker(color) {
         if (markerInitialized)
             return;
         markerInitialized = true;
@@ -155,12 +173,13 @@
             'marker');
         marker.setAttribute('id', 'triangle');
         marker.setAttribute('viewBox', '0 0 10 10');
-        marker.setAttribute('refX', x);
-        marker.setAttribute('refY', y);
+        marker.setAttribute('refX', 0);
+        marker.setAttribute('refY', 5);
         marker.setAttribute('markerUnits', 'strokeWidth');
         marker.setAttribute('markerWidth', '10');
-        marker.setAttribute('markerHeight', '8');
+        marker.setAttribute('markerHeight', '5');
         marker.setAttribute('orient', 'auto');
+        marker.setAttributeNS(null, "fill", color);
         var path = document.createElementNS('http://www.w3.org/2000/svg',
             'path');
         marker.appendChild(path);
@@ -191,9 +210,11 @@
         };
     }
     window.onload = function () {
-        connectDivs(document.getElementById('d2'), document.getElementById('d1'), 'blue', 2);
+        connectDivs(document.getElementById('d1'), document.getElementById('d2'), '#00FF7F', 3);
+        connectDivs(document.getElementById('d2'), document.getElementById('d3'), '#00FF7F', 3);
+        connectDivs(document.getElementById('d3'), document.getElementById('d4'), '#00FF7F', 3);
         // connectDivs(document.getElementById('d3'), document.getElementById('d2'), 'blue', 2);
-        connectDivs(document.getElementById('d4'), document.getElementById('d3'), 'blue', 2);
+        // connectDivs(document.getElementById('d1'), document.getElementById('d2'), 'blue', 3);
     }
 
 </script>

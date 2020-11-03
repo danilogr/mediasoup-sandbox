@@ -34,7 +34,11 @@ export let device,
            pollingInterval,
            gazeX = 0,
            gazeY = 0,
-           justUnchecked = false;
+           justUnchecked = false,
+           markerInitialized = false,
+           myVideoAdded = false,
+           myRoomId,
+           currentRoomMap = {};
 
 export async function showCoords(event) {
   var cX = event.clientX;
@@ -110,10 +114,10 @@ export async function joinRoom() {
     return;
   }
   let name = $('#username').value;
-  let password = $('#pwd').value;
-  let { result } = await sig('login', {username: name, pwd: password});
+  myRoomId = $('#pwd').value;
+  let { result } = await sig('login', { username: name, pwd: myRoomId});
   if (result === 'denied') {
-    alert("Wrong password!");
+    alert("Wrong Room ID!");
     return;
   } else if (result === 'empty') {
     alert("Please enter your name!")
@@ -656,7 +660,7 @@ async function createTransport(direction) {
 
 
 async function pollAndUpdate() {
-  let { peers, activeSpeaker, nameMap, error } = await sig('sync');
+  let { peers, activeSpeaker, nameMap, roomMap, error } = await sig('sync');
   if (error) {
     return ({ error });
   }
@@ -664,6 +668,7 @@ async function pollAndUpdate() {
   // always update bandwidth stats and active speaker display
   currentActiveSpeaker = activeSpeaker;
   currentNameMap = nameMap;
+  currentRoomMap = roomMap;
   updateActiveSpeaker();
   updateCamVideoProducerStatsDisplay();
   // updateScreenVideoProducerStatsDisplay();
@@ -789,6 +794,9 @@ export async function autoSubscribe(sortedPeers) {
     if (peer.id === myPeerId) {
       continue;
     }
+    if (currentRoomMap['participant_' + peer.id] !== myRoomId) {
+      continue;
+    }
     await sleep(1500);
     for (let [mediaTag, info] of Object.entries(peer.media)) {
       let consumer = findConsumerForTrack(peer.id, mediaTag);
@@ -807,37 +815,17 @@ export async function updatePeersDisplay(peersInfo = lastPollSyncData,
 
   $('#available-tracks').innerHTML = '';
   if (camVideoProducer) {
-    // $('#available-tracks')
-    //   .appendChild(makeTrackControlEl('my', 'cam-video',
-    //                                   peersInfo[myPeerId].media['cam-video']));
-    let consumer = findConsumerForTrack(myPeerId, 'cam-video');
-    if (!consumer) {
-      console.log('Here!!! subscribe!!!');
-      await subscribeToTrack(myPeerId, 'cam-video');
+    // let consumer = findConsumerForTrack(myPeerId, 'cam-video');
+    // if (!consumer) {
+    //   console.log('Here!!! subscribe!!!');
+    //   await subscribeToTrack(myPeerId, 'cam-video');
+    // }
+    if (!myVideoAdded) {
+      addMyVideoAudio();
+      myVideoAdded = true;
     }
   }
 
-  if (screenVideoProducer) {
-    // $('#available-tracks')
-    //   .appendChild(makeTrackControlEl('my', 'screen-video',
-    //                                 peersInfo[myPeerId].media['screen-video']));
-  }
-  if (screenAudioProducer) {
-    // $('#available-tracks')
-    //   .appendChild(makeTrackControlEl('my', 'screen-audio',
-    //                                 peersInfo[myPeerId].media['screen-audio']));
-  }
-
-  // for (let peer of sortedPeers) {
-  //   if (peer.id === myPeerId) {
-  //     continue;
-  //   }
-  //   for (let [mediaTag, info] of Object.entries(peer.media)) {
-  //     $('#available-tracks')
-  //       .appendChild(makeTrackControlEl(peer.id, mediaTag, info));
-  //   }
-    
-  // }
 }
 
 function makeTrackControlEl(peerName, mediaTag, mediaInfo) {
@@ -917,6 +905,43 @@ function makeTrackControlEl(peerName, mediaTag, mediaInfo) {
   // }
 
   return div;
+}
+
+function addMyVideoAudio() {
+  let div = document.createElement('div');
+  div.setAttribute('class', 'participant_div');
+  div.setAttribute('id', 'participant_' + myPeerId + '_div');
+  let namediv = document.createElement('div');
+  namediv.setAttribute('class', 'participant_name_div')
+  let nametag = document.createElement('span');
+  nametag.setAttribute('id', 'participant_' + myPeerId + '_name');
+  nametag.innerHTML = currentNameMap['participant_' + myPeerId];
+  namediv.appendChild(nametag);
+  let el = document.createElement('video');
+  // set some attributes on our audio and video elements to make
+  // mobile Safari happy. note that for audio to play you need to be
+  // capturing from the mic/camera
+  el.setAttribute('id', 'participant_' + myPeerId);
+  console.log('add video here!!!')
+  el.setAttribute('playsinline', true);
+  el.setAttribute('class', "participant_video");
+  div.appendChild(el);
+  div.appendChild(namediv);
+  
+  $('#remote-video').appendChild(div);
+  el.srcObject = new MediaStream([localCam.getVideoTracks()[0]]);
+  console.log('HERE self-video!!!');
+
+  // el.consumer = consumer;
+  // let's "yield" and return before playing, rather than awaiting on
+  // play() succeeding. play() will not succeed on a producer-paused
+  // track until the producer unpauses.
+  el.play()
+    .then(() => { })
+    .catch((e) => {
+      err(e);
+    });
+
 }
 
 function addVideoAudio(consumer) {
@@ -1066,56 +1091,6 @@ export async function sendGazeDirection() {
   return {target, gazeMap};
 }
 
-function drawArrowhead(context, from, to, radius) {
-  var x_center = to.x;
-  var y_center = to.y;
-
-  var angle;
-  var x;
-  var y;
-
-  context.beginPath();
-
-  angle = Math.atan2(to.y - from.y, to.x - from.x)
-  x = radius * Math.cos(angle) + x_center;
-  y = radius * Math.sin(angle) + y_center;
-
-  context.moveTo(x, y);
-
-  angle += (1.0 / 3.0) * (2 * Math.PI)
-  x = radius * Math.cos(angle) + x_center;
-  y = radius * Math.sin(angle) + y_center;
-
-  context.lineTo(x, y);
-
-  angle += (1.0 / 3.0) * (2 * Math.PI)
-  x = radius * Math.cos(angle) + x_center;
-  y = radius * Math.sin(angle) + y_center;
-
-  context.lineTo(x, y);
-
-  context.closePath();
-
-  context.fill();
-  /**
-   * var c = document.getElementById("myCanvas");
-var ctx = c.getContext("2d");
-var gradient = ctx.createLinearGradient(0, 0, 170, 0);
-gradient.addColorStop("0", "magenta");
-gradient.addColorStop("0.5" ,"blue");
-gradient.addColorStop("1.0", "red");
-
-drawArrowhead(ctx, {x:0, y:0}, {x:100, y:20}, 10);
-
-ctx.beginPath();
-ctx.strokeStyle = gradient;
-ctx.lineWidth = 5;
-ctx.moveTo(0, 0);
-ctx.lineTo(100, 20);
-ctx.stroke();
-   * 
-   */
-}
 export async function changePeekaboo() {
   // remove all viz if ckecked -> unchecked
   if (!$('#viz1').checked) {
@@ -1167,12 +1142,13 @@ export async function changeSpy() {
 
 function updateSpy(target, gazeMap_, distributionMap) {
   if ($('#svg-canvas') !== null) {
-    $('#svg-canvas').remove();
+    $('#svg-canvas').innerHTML = '';
+    markerInitialized = false;
   }
   if (target in gazeMap_) {
     const gaze = gazeMap_[target];
     if ((gaze in distributionMap) && (gaze !== target)) {
-      connectDivs($(`#${target}_div`), $(`#${gaze}_div`), 'blue', 2);
+      connectDivs($(`#${target}_div`), $(`#${gaze}_div`), '#00FF7F', 4);
       // $('#' + target + '_name').innerHTML = currentNameMap[target] + ' -> ' + currentNameMap[gaze];
     }
   }
@@ -1180,14 +1156,13 @@ function updateSpy(target, gazeMap_, distributionMap) {
 
 function updateGazeInfo(target, gazeMap) {
   const gazeDistribution = {};
-  const total = Object.keys(lastPollSyncData).length;
   for (var key in lastPollSyncData) {
-    gazeDistribution['participant_' + key] = 0
+    if (currentRoomMap['participant_' + key] === myRoomId)
+      gazeDistribution['participant_' + key] = 0
   }
-  for (var key in gazeMap) {
-    if (!(key in gazeDistribution)) {
-      continue;
-    }
+  const total = Object.keys(gazeDistribution).length;
+
+  for (var key in gazeDistribution) {
     const gaze = gazeMap[key];
 
     if ((gaze === '') || (gaze === key)) {
@@ -1196,9 +1171,10 @@ function updateGazeInfo(target, gazeMap) {
     }
     if (gaze in gazeDistribution) {
       gazeDistribution[gaze] += 1.0 / (total - 1);
-    } else {
-      gazeDistribution[gaze] = 0;
-    }
+    } 
+    // else {
+    //   gazeDistribution[gaze] = 0;
+    // }
   }
 
   /*
@@ -1291,13 +1267,16 @@ function connectDivs(elem1, elem2, color, tension) {
 
   drawCircle(x1, y1, 5, color);
   // drawCircle(x2, y2, 3, color);
+  createTriangleMarker(color);
   drawCurvedLine(x1, y1, x2, y2, color, tension);
 }
 
 function drawCurvedLine(x1, y1, x2, y2, color, tension) {
   var svg = createSVG();
   var shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  var gap = 10;
   if (y2 === y1) {
+    y2 += gap;
     var delta = 20 * tension;
     var hx1 = x1;
     var hy1 = y1 + delta;
@@ -1308,6 +1287,11 @@ function drawCurvedLine(x1, y1, x2, y2, color, tension) {
       + hx2 + " " + hy2 + " "
       + x2 + " " + y2;
   } else if (x1 < x2) {
+    if (y1 > y2) {
+      y2 += gap;
+    } else {
+      y2 -= gap;
+    }
     var delta = 20 * tension;
     var hx1 = x1;
     var hy1 = y1 - delta;
@@ -1318,7 +1302,15 @@ function drawCurvedLine(x1, y1, x2, y2, color, tension) {
       + hx2 + " " + hy2 + " "
       + x2 + " " + y2;
   } else {
+    if (y1 > y2) {
+      y2 += gap;
+    } else {
+      y2 -= gap;
+    }
     var delta = 20 * tension;
+    if (x1 === x2) {
+      var delta = 0;
+    }
     var hx1 = x1;
     var hy1 = y1 + delta;
     var hx2 = x2;
@@ -1331,12 +1323,14 @@ function drawCurvedLine(x1, y1, x2, y2, color, tension) {
   shape.setAttributeNS(null, "d", path);
   shape.setAttributeNS(null, "fill", "none");
   shape.setAttributeNS(null, "stroke", color);
-  shape.setAttributeNS(null, "stroke-width", 4);
+  shape.setAttributeNS(null, "stroke-width", 3);
   shape.setAttributeNS(null, "stroke-linecap", 'round');
+  shape.setAttributeNS(null, "marker-end", "url(#triangle)");
   svg.appendChild(shape);
 }
 
-function createTriangleMarker() {
+
+function createTriangleMarker(color) {
   if (markerInitialized)
     return;
   markerInitialized = true;
@@ -1349,12 +1343,13 @@ function createTriangleMarker() {
     'marker');
   marker.setAttribute('id', 'triangle');
   marker.setAttribute('viewBox', '0 0 10 10');
-  marker.setAttribute('refX', '0');
-  marker.setAttribute('refY', '5');
+  marker.setAttribute('refX', 0);
+  marker.setAttribute('refY', 5);
   marker.setAttribute('markerUnits', 'strokeWidth');
   marker.setAttribute('markerWidth', '10');
-  marker.setAttribute('markerHeight', '8');
+  marker.setAttribute('markerHeight', '5');
   marker.setAttribute('orient', 'auto');
+  marker.setAttributeNS(null, "fill", color);
   var path = document.createElementNS('http://www.w3.org/2000/svg',
     'path');
   marker.appendChild(path);

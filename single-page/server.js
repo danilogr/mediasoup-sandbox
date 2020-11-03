@@ -32,8 +32,11 @@ const roomState = {
   consumers: []
 }
 
-let gazeMap = {}
+let gazeMap = {};
 let nameMap = {};
+let rooms = ['pilot1', 'pilot2', 'pilot3'];
+let roomMap = {};
+
 //
 // for each peer that connects, we keep a table of peers and what
 // tracks are being sent and received. we also need to know the last
@@ -219,7 +222,8 @@ expressApp.post('/signaling/sync', async (req, res) => {
     res.send({
       peers: roomState.peers,
       activeSpeaker: roomState.activeSpeaker,
-      nameMap: nameMap
+      nameMap: nameMap,
+      roomMap: roomMap
     });
   } catch (e) {
     console.error(e.message);
@@ -768,11 +772,12 @@ expressApp.post('/signaling/login', async (req, res) => {
     let { username, pwd, peerId } = req.body;
     if (username === '') {
       res.send({ result: "empty" });
-    } else if (pwd !== password && !TEST) {
-      res.send({ result: "denied" });
-    } else {
+    } else if (rooms.includes(pwd)) { 
       nameMap['participant_' + peerId] = username;
+      roomMap['participant_' + peerId] = pwd;
       res.send({ result: "OK" });
+    } else { // pwd !== password && !TEST
+      res.send({ result: "denied" });
     }
   } catch (e) {
     console.error('error in /signaling/login', e);

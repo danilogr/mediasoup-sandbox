@@ -21,7 +21,8 @@ input[type="checkbox"] {
 .participant_div {
   height: 240px;
   width: 320px;
-  margin: 10px;
+  margin-left: auto;
+  margin-right: auto;
   border: 5px solid rgb(255, 255, 255);
   border-radius: 25px;
 } 
@@ -107,31 +108,22 @@ input[type="checkbox"] {
 }
 
 #remote-video-obs {
-  flex-grow: 1;
-  margin-top: 1em;
-  min-height: 300px;
-  border: 1px dashed black;
-  display: grid;
-  grid-column-gap: 1em;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-}
-
-#remote-video-obs1 {
-  padding: 5px;
-  display: flex;
-  height: 100vh;
-  width: 90%;
-  margin: auto;
-  flex-wrap: wrap;
-}
-
-#remote-video {
   padding: 5px;
   display: flex;
   height: 100%;
   width: 90%;
   margin: auto;
   flex-wrap: wrap;
+}
+#remote-video {
+  padding: 5px;
+  height: 100%;
+  width: 90%;
+  margin: auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-column-gap: 20%;
+  grid-row-gap: 10%;
 }
 
 #remote-audio {

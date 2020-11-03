@@ -2,7 +2,7 @@ module.exports = {
   // http server ip, port, and peer timeout constant
   //
   /*  For prod  */
-  httpIp: '0.0.0.0',//'127.0.0.1',
+  httpIp: '0.0.0.0',
   /*  For local dev  */
   // httpIp: '127.0.0.1',
   httpPort: 3000,

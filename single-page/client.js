@@ -38,13 +38,19 @@ export let device,
            markerInitialized = false,
            myVideoAdded = false,
            myRoomId,
-           currentRoomMap = {};
+           currentRoomMap = {},
+           isBlur = false;
 
 export async function showCoords(event) {
   var cX = event.clientX;
   var cY = event.clientY;
   gazeX = cX;//GazeData.GazeX;
   gazeY = cY;//GazeData.GazeY;
+  var gaze = document.getElementById("gaze");
+  cX -= gaze.clientWidth / 2;
+  cY -= gaze.clientHeight / 2;
+  gaze.style.left = cX + "px";
+  gaze.style.top = cY + "px";
   console.log('clicked!!!');
 }
 
@@ -65,13 +71,13 @@ function processGaze(GazeData) {
   gaze.style.left = x_ + "px";
   gaze.style.top = y_ + "px";
 
-  if (GazeData.state !== 0) {
-    if (gaze.style.display === 'block')
-      gaze.style.display = 'none';
-  } else {
-    if (gaze.style.display === 'none')
-      gaze.style.display = 'block';
-  }
+  // if (GazeData.state !== 0) {
+  //   if (gaze.style.display === 'block')
+  //     gaze.style.display = 'none';
+  // } else {
+  //   if (gaze.style.display === 'none')
+  //     gaze.style.display = 'block';
+  // }
 
 }
 
@@ -127,6 +133,9 @@ export async function joinRoom() {
   log('join room');
   $('#join-control').style.display = 'none';
 
+  $('#viz_tools').style.display = 'initial';
+  $('#roomID').innerHTML = '<b>Room:' + myRoomId + '</b>';
+
   try {
     // signal that we're a new peer and initialize our
     // mediasoup-client device, if this is our first time connecting
@@ -136,6 +145,7 @@ export async function joinRoom() {
     }
     joined = true;
     $('#leave-room').style.display = 'initial';
+    document.getElementById("gaze").style.display = 'block';
   } catch (e) {
     console.error(e);
     return;
@@ -207,7 +217,7 @@ export async function sendCameraStreams() {
   // }
 
   // $('#stop-streams').style.display = 'initial';
-  showCameraInfo();
+  // showCameraInfo();
 }
 
 export async function startScreenshare() {
@@ -333,7 +343,7 @@ export async function cycleCamera() {
   await camAudioProducer.replaceTrack({ track: localCam.getAudioTracks()[0] });
 
   // update the user interface
-  showCameraInfo();
+  // showCameraInfo();
 }
 
 export async function stopStreams() {
@@ -374,7 +384,7 @@ export async function stopStreams() {
   $('#share-screen').style.display = 'initial';
   $('#local-screen-pause-ctrl').style.display = 'none';
   $('#local-screen-audio-pause-ctrl').style.display = 'none';
-  showCameraInfo();
+  // showCameraInfo();
 }
 
 export async function leaveRoom() {
@@ -415,6 +425,19 @@ export async function leaveRoom() {
   consumers = [];
   joined = false;
 
+  justUnchecked = false;
+  markerInitialized = false;
+  myVideoAdded = false;
+
+  $('#viz1').checked = false;
+  changePeekaboo();
+  $('#viz2').checked = false;
+  changeSpotlight();
+  $('#viz3').checked = false;
+  changeSpy();
+
+  $('#viz_tools').style.display = 'none';
+
   // hacktastically restore ui to initial state
   $('#join-control').style.display = 'initial';
   // $('#send-camera').style.display = 'initial';
@@ -423,8 +446,8 @@ export async function leaveRoom() {
   // $('#share-screen').style.display = 'initial';
   // $('#local-screen-pause-ctrl').style.display = 'none';
   // $('#local-screen-audio-pause-ctrl').style.display = 'none';
-  showCameraInfo();
-  updateCamVideoProducerStatsDisplay();
+  // showCameraInfo();
+  // updateCamVideoProducerStatsDisplay();
   // updateScreenVideoProducerStatsDisplay();
   updatePeersDisplay();
 }
@@ -670,7 +693,7 @@ async function pollAndUpdate() {
   currentNameMap = nameMap;
   currentRoomMap = roomMap;
   updateActiveSpeaker();
-  updateCamVideoProducerStatsDisplay();
+  // updateCamVideoProducerStatsDisplay();
   // updateScreenVideoProducerStatsDisplay();
   // updateConsumersStatsDisplay();
 
@@ -1064,6 +1087,23 @@ function findAbsolutePosition(htmlElement) {
   };
 }
 
+export async function changeGaze() {
+  if (isBlur) {
+    isBlur = false;
+    $$('.participant_video').forEach((el) => {
+      el.classList.remove('drunk');
+    })
+    document.getElementById("gaze").style.display = 'block';
+  } else {
+    isBlur = true;
+    $$('.participant_video').forEach((el) => {
+      el.classList.add('drunk');
+    })
+    document.getElementById("gaze").style.display = 'none';
+  }
+  
+}
+
 export async function sendGazeDirection() {
   var x = gazeX;
   var y = gazeY;
@@ -1082,11 +1122,19 @@ export async function sendGazeDirection() {
     // console.log(left, top, left+w, top+h, 'x,y:', x, y);
     if (x >= left && x <= left + w && y >= top && y <= top + h) {
       target = vid.id;
-      break;
+      // break;
+    }
+    if (isBlur) {
+      $('#' + vid.id).classList.add('drunk');
     }
   }
-  console.log('target is ' + target);
-  let { gazeMap } = await sig('gaze', { src: 'participant_' + myPeerId, tar: target });
+  if (isBlur) {
+    if (target !== '')
+      $('#' + target).classList.remove('drunk');
+  }
+  let viz_list = [$('#viz1').checked, $('#viz2').checked, $('#viz3').checked]
+  // console.log('target is ' + target);
+  let { gazeMap } = await sig('gaze', { src: 'participant_' + myPeerId, tar: target, vl: viz_list });
   // console.log(gazeMap);
   return {target, gazeMap};
 }

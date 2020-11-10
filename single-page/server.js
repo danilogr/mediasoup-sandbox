@@ -4,6 +4,7 @@ const mediasoup = require('mediasoup');
 const express = require('express');
 const https = require('https');
 const fs = require('fs');
+const logging = require('log-to-file');
 
 const expressApp = express();
 let httpsServer;
@@ -36,6 +37,8 @@ let gazeMap = {};
 let nameMap = {};
 let rooms = ['pilot1', 'pilot2', 'pilot3'];
 let roomMap = {};
+
+var logfile_name = 'serverlog_' + Date.now() + '.log';
 
 //
 // for each peer that connects, we keep a table of peers and what
@@ -137,6 +140,9 @@ async function main() {
     Object.entries(roomState.peers).forEach(([id, p]) => {
       if ((now - p.lastSeenTs) > config.httpPeerStale) {
         warn(`removing stale peer ${id}`);
+        delete gazeMap['participant_' + id];
+        delete nameMap['participant_' + id];
+        delete roomMap['participant_' + id];
         closePeer(id);
       }
     });
@@ -144,9 +150,26 @@ async function main() {
 
   // periodically update video stats we're sending to peers
   setInterval(updatePeerStats, 3000);
+  // saveGaze2log('Server running...');
 }
 
 main();
+
+
+function saveGaze2log(src, tar, vl) {
+  let ts = new Date(Date.now());
+  let date = ts.toLocaleDateString("en-US");
+  let time = ts.toLocaleTimeString("en-US");
+  let line = {};
+  line['src'] = nameMap[src];
+  if (tar !== '')
+    line['tar'] = nameMap[tar];
+  else 
+    line['tar'] = '';
+  line['vizlist'] = vl;
+  line['room'] = roomMap[src];
+  logging(date + ',' + time + ',' + JSON.stringify(line), logfile_name);
+}
 
 
 //
@@ -265,7 +288,9 @@ expressApp.post('/signaling/leave', async (req, res) => {
   try {
     let { peerId } = req.body;
     log('leave', peerId);
-
+    delete gazeMap['participant_' + peerId];
+    delete nameMap['participant_' + peerId];
+    delete roomMap['participant_' + peerId];
     await closePeer(peerId);
     res.send({ left: true });
   } catch (e) {
@@ -757,9 +782,10 @@ expressApp.post('/signaling/resume-producer', async (req, res) => {
 
 expressApp.post('/signaling/gaze', async (req, res) => {
   try {
-    let {src, tar} = req.body;
+    let {src, tar, vl} = req.body;
     gazeMap[src] = tar;
     // console.log(src + ' -> ' + tar);
+    saveGaze2log(src, tar, vl);
     res.send({gazeMap});
   } catch (e) {
     console.error('error in /signaling/gaze', e);

@@ -25,6 +25,7 @@ input[type="checkbox"] {
   margin-right: auto;
   border: 5px solid rgb(255, 255, 255);
   border-radius: 25px;
+  /* backdrop-filter: blur(5px); */
 } 
 
 .obs_participant_div {
@@ -43,6 +44,14 @@ input[type="checkbox"] {
   /* position: absolute; */
   border-radius: 25px;
 } 
+
+.drunk {
+  -webkit-filter: blur(5px);
+  -moz-filter: blur(5px);
+  -o-filter: blur(5px);
+  -ms-filter: blur(5px);
+  filter: blur(5px);
+}
 
 .participant_name_div {
   height:25;
@@ -139,7 +148,7 @@ input[type="checkbox"] {
 
 .speaker {
   /* background-color: yellow; */
-  border: 5px solid rgb(255, 208, 0);
+  border: 5px solid rgb(255, 238, 0);
 }
 
 #local-screen-pause-ctrl {

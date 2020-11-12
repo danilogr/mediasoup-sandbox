@@ -87,9 +87,9 @@ module.exports = {
     webRtcTransport: {
       listenIps: [
       /*  For local dev  */
-        { ip: '127.0.0.1', announcedIp: null },
+        // { ip: '127.0.0.1', announcedIp: null },
       /*  For prod  */
-      //  { ip: '172.31.26.150', announcedIp: '54.215.122.64' },
+       { ip: '172.31.26.150', announcedIp: '54.215.122.64' },
 
       ],
       initialAvailableOutgoingBitrate: 800000,

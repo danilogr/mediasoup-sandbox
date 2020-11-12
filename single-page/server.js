@@ -167,10 +167,10 @@ function saveGaze2log(src, tar, vl) {
     line['tar'] = '';
   line['vizlist'] = vl;
   let ts_date = new Date(Date.now());
-  let time = ts_date.toLocaleTimeString("en-US");
+  let time_ = ts_date.toLocaleTimeString("en-US");
   let date = ts_date.toLocaleDateString("en-US").split('/').join('-');
   let logfile_name = 'server_' + roomMap[src] + '_' + date + '.log';
-  logging(time + ',' + JSON.stringify(line), logfile_name);
+  logging(time_ + ',' + JSON.stringify(line), logfile_name);
 }
 
 
@@ -249,7 +249,7 @@ expressApp.post('/signaling/sync', async (req, res) => {
       activeSpeaker: roomState.activeSpeaker,
       nameMap: nameMap,
       roomMap: roomMap,
-      mID: moderatorID[roomMap['participant_'+peerId]]
+      mID: moderatorID[roomMap['participant_' + peerId]] ? moderatorID[roomMap['participant_' + peerId]] : ''
     });
   } catch (e) {
     console.error(e.message);
@@ -807,7 +807,7 @@ expressApp.post('/signaling/login', async (req, res) => {
       res.send({ result: "empty" });
     } else if (rooms.includes(roomname)) { 
       if (pwd === 'gs_moderator') {
-        if (moderatorID[roomname] !== '') {
+        if (moderatorID[roomname] && moderatorID[roomname] !== '') {
           res.send({ result: "mod_denied" });
         } else {
           nameMap['participant_' + peerId] = username;

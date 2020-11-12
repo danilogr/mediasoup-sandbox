@@ -743,7 +743,6 @@ async function pollAndUpdate() {
   currentNameMap = nameMap;
   currentRoomMap = roomMap;
   moderatorPeerID = mID;
-  // console.log('moderator is ', mID);
   if (mID === '') {
     $('#moderator_status').innerHTML = 'Moderator not joined.'
   } else {

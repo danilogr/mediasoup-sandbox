@@ -37,9 +37,7 @@ let gazeMap = {};
 let nameMap = {};
 let rooms = ['pilot1', 'pilot2', 'pilot3'];
 let roomMap = {};
-let moderatorID = '';
-
-var logfile_name = 'serverlog_' + Date.now() + '.log';
+let moderatorID = {};
 
 //
 // for each peer that connects, we keep a table of peers and what
@@ -141,12 +139,12 @@ async function main() {
     Object.entries(roomState.peers).forEach(([id, p]) => {
       if ((now - p.lastSeenTs) > config.httpPeerStale) {
         warn(`removing stale peer ${id}`);
+        let room = roomMap['participant_' + id];
+        if (moderatorID[room] === id)
+          moderatorID[room] = '';
         delete gazeMap['participant_' + id];
         delete nameMap['participant_' + id];
         delete roomMap['participant_' + id];
-        if (id === moderatorID) {
-          moderatorID = '';
-        }
         closePeer(id);
       }
     });
@@ -161,9 +159,6 @@ main();
 
 
 function saveGaze2log(src, tar, vl) {
-  let ts = new Date(Date.now());
-  let date = ts.toLocaleDateString("en-US");
-  let time = ts.toLocaleTimeString("en-US");
   let line = {};
   line['src'] = nameMap[src];
   if (tar !== '')
@@ -171,8 +166,11 @@ function saveGaze2log(src, tar, vl) {
   else 
     line['tar'] = '';
   line['vizlist'] = vl;
-  line['room'] = roomMap[src];
-  logging(date + ',' + time + ',' + JSON.stringify(line), logfile_name);
+  let ts_date = new Date(Date.now());
+  let time = ts_date.toLocaleTimeString("en-US");
+  let date = ts_date.toLocaleDateString("en-US").split('/').join('-');
+  let logfile_name = 'server_' + roomMap[src] + '_' + date + '.log';
+  logging(time + ',' + JSON.stringify(line), logfile_name);
 }
 
 
@@ -251,7 +249,7 @@ expressApp.post('/signaling/sync', async (req, res) => {
       activeSpeaker: roomState.activeSpeaker,
       nameMap: nameMap,
       roomMap: roomMap,
-      mID: moderatorID
+      mID: moderatorID[roomMap['participant_'+peerId]]
     });
   } catch (e) {
     console.error(e.message);
@@ -293,12 +291,12 @@ expressApp.post('/signaling/leave', async (req, res) => {
   try {
     let { peerId } = req.body;
     log('leave', peerId);
+    let room = roomMap['participant_' + peerId];
+    if (moderatorID[room] === peerId)
+      moderatorID[room] = '';
     delete gazeMap['participant_' + peerId];
     delete nameMap['participant_' + peerId];
     delete roomMap['participant_' + peerId];
-    if (peerId === moderatorID) {
-      moderatorID = '';
-    }
     await closePeer(peerId);
     res.send({ left: true });
   } catch (e) {
@@ -809,12 +807,12 @@ expressApp.post('/signaling/login', async (req, res) => {
       res.send({ result: "empty" });
     } else if (rooms.includes(roomname)) { 
       if (pwd === 'gs_moderator') {
-        if (moderatorID !== '') {
+        if (moderatorID[roomname] !== '') {
           res.send({ result: "mod_denied" });
         } else {
           nameMap['participant_' + peerId] = username;
           roomMap['participant_' + peerId] = roomname;
-          moderatorID = peerId;
+          moderatorID[roomname] = peerId;
           res.send({ result: "M" });
         }
       } else if (pwd !== 'gazescapepilot' && !TEST) {

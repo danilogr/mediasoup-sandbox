@@ -37,6 +37,7 @@ let gazeMap = {};
 let nameMap = {};
 let rooms = ['pilot1', 'pilot2', 'pilot3'];
 let roomMap = {};
+let moderatorID = '';
 
 var logfile_name = 'serverlog_' + Date.now() + '.log';
 
@@ -143,6 +144,9 @@ async function main() {
         delete gazeMap['participant_' + id];
         delete nameMap['participant_' + id];
         delete roomMap['participant_' + id];
+        if (id === moderatorID) {
+          moderatorID = '';
+        }
         closePeer(id);
       }
     });
@@ -246,7 +250,8 @@ expressApp.post('/signaling/sync', async (req, res) => {
       peers: roomState.peers,
       activeSpeaker: roomState.activeSpeaker,
       nameMap: nameMap,
-      roomMap: roomMap
+      roomMap: roomMap,
+      mID: moderatorID
     });
   } catch (e) {
     console.error(e.message);
@@ -291,6 +296,9 @@ expressApp.post('/signaling/leave', async (req, res) => {
     delete gazeMap['participant_' + peerId];
     delete nameMap['participant_' + peerId];
     delete roomMap['participant_' + peerId];
+    if (peerId === moderatorID) {
+      moderatorID = '';
+    }
     await closePeer(peerId);
     res.send({ left: true });
   } catch (e) {
@@ -783,9 +791,10 @@ expressApp.post('/signaling/resume-producer', async (req, res) => {
 expressApp.post('/signaling/gaze', async (req, res) => {
   try {
     let {src, tar, vl} = req.body;
-    gazeMap[src] = tar;
-    // console.log(src + ' -> ' + tar);
-    saveGaze2log(src, tar, vl);
+    if (src !== '') {
+      gazeMap[src] = tar;
+      saveGaze2log(src, tar, vl);
+    }
     res.send({gazeMap});
   } catch (e) {
     console.error('error in /signaling/gaze', e);
@@ -795,15 +804,28 @@ expressApp.post('/signaling/gaze', async (req, res) => {
 
 expressApp.post('/signaling/login', async (req, res) => {
   try {
-    let { username, pwd, peerId } = req.body;
+    let { username, roomname, pwd, peerId } = req.body;
     if (username === '') {
       res.send({ result: "empty" });
-    } else if (rooms.includes(pwd)) { 
-      nameMap['participant_' + peerId] = username;
-      roomMap['participant_' + peerId] = pwd;
-      res.send({ result: "OK" });
-    } else { // pwd !== password && !TEST
-      res.send({ result: "denied" });
+    } else if (rooms.includes(roomname)) { 
+      if (pwd === 'gs_moderator') {
+        if (moderatorID !== '') {
+          res.send({ result: "mod_denied" });
+        } else {
+          nameMap['participant_' + peerId] = username;
+          roomMap['participant_' + peerId] = roomname;
+          moderatorID = peerId;
+          res.send({ result: "M" });
+        }
+      } else if (pwd !== 'gazescapepilot' && !TEST) {
+        res.send({ result: "pwd_denied" });
+      } else {
+        nameMap['participant_' + peerId] = username;
+        roomMap['participant_' + peerId] = roomname;
+        res.send({ result: "OK" });
+      }
+    } else {
+      res.send({ result: "room_denied" });
     }
   } catch (e) {
     console.error('error in /signaling/login', e);

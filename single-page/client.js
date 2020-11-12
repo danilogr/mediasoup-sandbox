@@ -39,7 +39,9 @@ export let device,
            myVideoAdded = false,
            myRoomId,
            currentRoomMap = {},
-           isBlur = false;
+           isBlur = false,
+           isModerator = false,
+           moderatorPeerID = '';
 
 export async function showCoords(event) {
   var cX = event.clientX;
@@ -120,14 +122,22 @@ export async function joinRoom() {
     return;
   }
   let name = $('#username').value;
-  myRoomId = $('#pwd').value;
-  let { result } = await sig('login', { username: name, pwd: myRoomId});
-  if (result === 'denied') {
+  let passcode = $('#pwd').value;
+  myRoomId = $('#roomname').value;
+  let { result } = await sig('login', { username: name, roomname: myRoomId, pwd: passcode });
+  
+  if (result === 'room_denied') {
     alert("Wrong Room ID!");
+    return;
+  } else if (result === 'pwd_denied') {
+    alert("Wrong passcode!");
     return;
   } else if (result === 'empty') {
     alert("Please enter your name!")
     return;
+  } else if (result === 'M') {
+    isModerator = true;
+    moderatorPeerID = myPeerId;
   }
 
   log('join room');
@@ -160,7 +170,44 @@ export async function joinRoom() {
     }
   }, 1000);
 
-  sendCameraStreams();
+  if (isModerator) {
+    sendAudioOnly();
+  }
+  else {
+    sendCameraStreams();
+  }
+
+}
+
+export async function sendAudioOnly() {
+  log('send camera streams');
+  // $('#send-camera').style.display = 'none';
+
+  // make sure we've joined the room and started our camera. these
+  // functions don't do anything if they've already been called this
+  // session
+  await joinRoom();
+  await startCamera();
+
+  // create a transport for outgoing media, if we don't already have one
+  if (!sendTransport) {
+    sendTransport = await createTransport('send');
+  }
+
+  // start sending video. the transport logic will initiate a
+  // signaling conversation with the server to set up an outbound rtp
+  // stream for the camera video track. our createTransport() function
+  // includes logic to tell the server to start the stream in a paused
+  // state, if the checkbox in our UI is unchecked. so as soon as we
+  // have a client-side camVideoProducer object, we need to set it to
+  // paused as appropriate, too.
+
+  // same thing for audio, but we can use our already-created
+  camAudioProducer = await sendTransport.produce({
+    track: localCam.getAudioTracks()[0],
+    appData: { mediaTag: 'cam-audio' }
+  });
+
 }
 
 export async function sendCameraStreams() {
@@ -428,6 +475,8 @@ export async function leaveRoom() {
   justUnchecked = false;
   markerInitialized = false;
   myVideoAdded = false;
+  moderatorPeerID = '';
+  isModerator = false;
 
   $('#viz1').checked = false;
   changePeekaboo();
@@ -680,10 +729,8 @@ async function createTransport(direction) {
 // polling/update logic
 //
 
-
-
 async function pollAndUpdate() {
-  let { peers, activeSpeaker, nameMap, roomMap, error } = await sig('sync');
+  let { peers, activeSpeaker, nameMap, roomMap, mID, error } = await sig('sync');
   if (error) {
     return ({ error });
   }
@@ -692,6 +739,13 @@ async function pollAndUpdate() {
   currentActiveSpeaker = activeSpeaker;
   currentNameMap = nameMap;
   currentRoomMap = roomMap;
+  moderatorPeerID = mID;
+  if (mID === '') {
+    $('#moderator_status').innerHTML = 'Moderator not joined.'
+  } else {
+    $('#moderator_status').innerHTML = 'Moderater ' + currentNameMap['participant_' + moderatorPeerID];
+  }
+  
   updateActiveSpeaker();
   // updateCamVideoProducerStatsDisplay();
   // updateScreenVideoProducerStatsDisplay();
@@ -931,6 +985,9 @@ function makeTrackControlEl(peerName, mediaTag, mediaInfo) {
 }
 
 function addMyVideoAudio() {
+  if (isModerator) {
+    return;
+  }
   let div = document.createElement('div');
   div.setAttribute('class', 'participant_div');
   div.setAttribute('id', 'participant_' + myPeerId + '_div');
@@ -971,41 +1028,33 @@ function addVideoAudio(consumer) {
   if (!(consumer && consumer.track)) {
     return;
   }
-  let div = document.createElement('div');
-  div.setAttribute('class', 'participant_div');
-  div.setAttribute('id', 'participant_' + consumer.appData.peerId + '_div');
-  let namediv = document.createElement('div');
-  namediv.setAttribute('class', 'participant_name_div')
-  let nametag = document.createElement('span');
-  nametag.setAttribute('id', 'participant_' + consumer.appData.peerId + '_name');
-  nametag.innerHTML = currentNameMap['participant_' + consumer.appData.peerId];
-  namediv.appendChild(nametag);
-  let el = document.createElement(consumer.kind);
   // set some attributes on our audio and video elements to make
   // mobile Safari happy. note that for audio to play you need to be
   // capturing from the mic/camera
-  el.setAttribute('id', 'participant_' + consumer.appData.peerId);
-  console.log('add video here!!!')
+  let el = document.createElement(consumer.kind);
   if (consumer.kind === 'video') {
-    el.setAttribute('playsinline', true);
+    let div = document.createElement('div');
+    div.setAttribute('class', 'participant_div');
+    div.setAttribute('id', 'participant_' + consumer.appData.peerId + '_div');
+    let namediv = document.createElement('div');
+    namediv.setAttribute('class', 'participant_name_div')
+    let nametag = document.createElement('span');
+    nametag.setAttribute('id', 'participant_' + consumer.appData.peerId + '_name');
+    nametag.innerHTML = currentNameMap['participant_' + consumer.appData.peerId];
+    namediv.appendChild(nametag);
+    el.setAttribute('id', 'participant_' + consumer.appData.peerId);
     el.setAttribute('class', "participant_video");
+    el.setAttribute('playsinline', true);
+    div.appendChild(el);
+    div.appendChild(namediv);
+    $(`#remote-${consumer.kind}`).appendChild(div);
   } else {
     el.setAttribute('playsinline', true);
     el.setAttribute('autoplay', true);
+    $(`#remote-${consumer.kind}`).appendChild(el);
   }
-  div.appendChild(el);
-  div.appendChild(namediv);
-  // console.log(div.offsetWidth + "div's width!!!");
-  // div.style.width = div.offsetWidth * 3 / 4 + 'px';
-  $(`#remote-${consumer.kind}`).appendChild(div);
-  if (consumer.appData.peerId !== myPeerId) {
-    el.srcObject = new MediaStream([consumer.track.clone()]); // TODO: don't subscribe your own video!!!
-  }
-  else {
-    el.srcObject = new MediaStream([localCam.getVideoTracks()[0]]);
-    console.log('HERE self-video!!!');
-  }
-    
+  
+  el.srcObject = new MediaStream([consumer.track.clone()]);
   el.consumer = consumer;
   // let's "yield" and return before playing, rather than awaiting on
   // play() succeeding. play() will not succeed on a producer-paused
@@ -1064,7 +1113,13 @@ function updateActiveSpeaker() {
   $$('.participant_div').forEach((el) => {
     el.classList.remove('speaker');
   })
+  $('#moderator_status').innerHTML = 'Moderator: ' + currentNameMap['participant_' + moderatorPeerID];
+
   if (currentActiveSpeaker.peerId) {
+    if (currentActiveSpeaker.peerId === moderatorPeerID) {
+      // display speaker status
+      $('#moderator_status').innerHTML = 'Moderator ' + currentNameMap['participant_' + moderatorPeerID] + ' is speaking'
+    }
     if ($(`#participant_${currentActiveSpeaker.peerId}_name`) !== null) {
       $(`#participant_${currentActiveSpeaker.peerId}_div`).classList.add('speaker');
     }
@@ -1132,9 +1187,13 @@ export async function sendGazeDirection() {
     if (target !== '')
       $('#' + target).classList.remove('drunk');
   }
+
   let viz_list = [$('#viz1').checked, $('#viz2').checked, $('#viz3').checked]
   // console.log('target is ' + target);
-  let { gazeMap } = await sig('gaze', { src: 'participant_' + myPeerId, tar: target, vl: viz_list });
+  if (isModerator)
+    var { gazeMap } = await sig('gaze', { src: '', tar: target, vl: [] });
+  else
+    var { gazeMap } = await sig('gaze', { src: 'participant_' + myPeerId, tar: target, vl: viz_list });
   // console.log(gazeMap);
   return {target, gazeMap};
 }
@@ -1145,6 +1204,8 @@ export async function changePeekaboo() {
     $$('.x_icon_style').forEach((el) => {
       el.remove();
     });
+  } else if ($('#viz1').checked && isModerator) {
+    $('#viz1').checked = false;
   }
 }
 
@@ -1205,7 +1266,7 @@ function updateSpy(target, gazeMap_, distributionMap) {
 function updateGazeInfo(target, gazeMap) {
   const gazeDistribution = {};
   for (var key in lastPollSyncData) {
-    if (currentRoomMap['participant_' + key] === myRoomId)
+    if (currentRoomMap['participant_' + key] === myRoomId && key !== moderatorPeerID)
       gazeDistribution['participant_' + key] = 0
   }
   const total = Object.keys(gazeDistribution).length;

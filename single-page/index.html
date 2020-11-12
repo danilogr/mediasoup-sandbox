@@ -17,7 +17,9 @@
     <form>
       <label for="username">Display name:</label><br>
       <input type="text" id="username" name="username"><br>
-      <label for="pwd">Room ID:</label><br>
+      <label for="roomname"> Room ID:</label><br>
+      <input type="text" id="roomname" name="roomname"><br>
+      <label for="pwd">Passcode:</label><br>
       <input type="password" id="pwd" name="pwd">
     </form>
     <button type="button" onclick="GazeCloudAPI.StartEyeTracking();">Start Calibrating</button>
@@ -47,6 +49,8 @@
     <input id="viz3" type="checkbox" onchange="Client.changeSpy()"></input>
     <label id="viz3_label">Snoop</label>
     <button id="gaze_rep" onclick="Client.changeGaze()">Toggle gaze</button>
+    <span id="time">xx:xx:xx</span>
+    <span id="moderator_status">moderator xxx is speaking</span>
     <!-- <div id="outgoing-cam-streams-ctrl">
       <div> -->
         <!-- <input id="local-cam-checkbox" type="checkbox" checked

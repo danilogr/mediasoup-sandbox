@@ -135,6 +135,9 @@ export async function joinRoom() {
   } else if (result === 'empty') {
     alert("Please enter your name!")
     return;
+  } else if (result === 'mod_denied') {
+    alert("Moderator exists! Please join as a participant!")
+    return;
   } else if (result === 'M') {
     isModerator = true;
     moderatorPeerID = myPeerId;
@@ -740,10 +743,11 @@ async function pollAndUpdate() {
   currentNameMap = nameMap;
   currentRoomMap = roomMap;
   moderatorPeerID = mID;
+  // console.log('moderator is ', mID);
   if (mID === '') {
     $('#moderator_status').innerHTML = 'Moderator not joined.'
   } else {
-    $('#moderator_status').innerHTML = 'Moderater ' + currentNameMap['participant_' + moderatorPeerID];
+    $('#moderator_status').innerHTML = 'Moderater: ' + currentNameMap['participant_' + moderatorPeerID];
   }
   
   updateActiveSpeaker();
@@ -1113,12 +1117,13 @@ function updateActiveSpeaker() {
   $$('.participant_div').forEach((el) => {
     el.classList.remove('speaker');
   })
-  $('#moderator_status').innerHTML = 'Moderator: ' + currentNameMap['participant_' + moderatorPeerID];
+  if (moderatorPeerID !== '')
+    $('#moderator_status').innerHTML = 'Moderator: ' + currentNameMap['participant_' + moderatorPeerID];
 
   if (currentActiveSpeaker.peerId) {
     if (currentActiveSpeaker.peerId === moderatorPeerID) {
       // display speaker status
-      $('#moderator_status').innerHTML = 'Moderator ' + currentNameMap['participant_' + moderatorPeerID] + ' is speaking'
+      $('#moderator_status').innerHTML = 'Moderator ' + currentNameMap['participant_' + moderatorPeerID] + ' is speaking';
     }
     if ($(`#participant_${currentActiveSpeaker.peerId}_name`) !== null) {
       $(`#participant_${currentActiveSpeaker.peerId}_div`).classList.add('speaker');
@@ -1195,6 +1200,9 @@ export async function sendGazeDirection() {
   else
     var { gazeMap } = await sig('gaze', { src: 'participant_' + myPeerId, tar: target, vl: viz_list });
   // console.log(gazeMap);
+  let ts = new Date(Date.now());
+  let timeString = ts.toLocaleTimeString("en-US");
+  $('#time').innerHTML = timeString;
   return {target, gazeMap};
 }
 

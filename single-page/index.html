@@ -49,8 +49,7 @@
     <input id="viz3" type="checkbox" onchange="Client.changeSpy()"></input>
     <label id="viz3_label">Snoop</label>
     <button id="gaze_rep" onclick="Client.changeGaze()">Toggle gaze</button>
-    <span id="time">xx:xx:xx</span>
-    <span id="moderator_status">moderator xxx is speaking</span>
+    <span id="moderator_status">Moderator not joined</span>
     <!-- <div id="outgoing-cam-streams-ctrl">
       <div> -->
         <!-- <input id="local-cam-checkbox" type="checkbox" checked
@@ -73,7 +72,7 @@
       </div> -->
     <!-- </div> -->
   </div>
-
+  <span id="time"></span>
   <button id="leave-room" onclick="Client.leaveRoom()">
     leave room
   </button>

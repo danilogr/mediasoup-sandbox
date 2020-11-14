@@ -1027,7 +1027,7 @@ function addMyVideoAudio() {
 
 }
 
-function addVideoAudio(consumer) {
+function addVideoAudio_old(consumer) {
   if (!(consumer && consumer.track)) {
     return;
   }
@@ -1072,7 +1072,7 @@ function addVideoAudio(consumer) {
 
 }
 
-function addVideoAudio_new(consumer) {
+function addVideoAudio(consumer) {
   if (!(consumer && consumer.track)) {
     return;
   }

@@ -1097,9 +1097,11 @@ function addVideoAudio(consumer) {
     div.appendChild(namediv);
     $(`#remote-${consumer.kind}`).appendChild(div);
   } else {
+    let div = document.createElement('div');
     el.setAttribute('playsinline', true);
     el.setAttribute('autoplay', true);
-    $(`#remote-${consumer.kind}`).appendChild(el);
+    div.appendChild(el);
+    $(`#remote-${consumer.kind}`).appendChild(div);
   }
   
   el.srcObject = new MediaStream([consumer.track.clone()]);

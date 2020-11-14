@@ -174,7 +174,7 @@ export async function joinRoom() {
   }, 1000);
 
   if (isModerator) {
-    sendAudioOnly();
+    // sendAudioOnly();
   }
   else {
     sendCameraStreams();
@@ -1028,6 +1028,51 @@ function addMyVideoAudio() {
 }
 
 function addVideoAudio(consumer) {
+  if (!(consumer && consumer.track)) {
+    return;
+  }
+  let div = document.createElement('div');
+  div.setAttribute('class', 'participant_div');
+  div.setAttribute('id', 'participant_' + consumer.appData.peerId + '_div');
+  let namediv = document.createElement('div');
+  namediv.setAttribute('class', 'participant_name_div')
+  let nametag = document.createElement('span');
+  nametag.setAttribute('id', 'participant_' + consumer.appData.peerId + '_name');
+  nametag.innerHTML = currentNameMap['participant_' + consumer.appData.peerId];
+  namediv.appendChild(nametag);
+  let el = document.createElement(consumer.kind);
+  // set some attributes on our audio and video elements to make
+  // mobile Safari happy. note that for audio to play you need to be
+  // capturing from the mic/camera
+  el.setAttribute('id', 'participant_' + consumer.appData.peerId);
+  console.log('add video here!!!')
+  if (consumer.kind === 'video') {
+    el.setAttribute('playsinline', true);
+    el.setAttribute('class', "participant_video");
+  } else {
+    el.setAttribute('playsinline', true);
+    el.setAttribute('autoplay', true);
+  }
+  div.appendChild(el);
+  div.appendChild(namediv);
+  // console.log(div.offsetWidth + "div's width!!!");
+  // div.style.width = div.offsetWidth * 3 / 4 + 'px';
+  $(`#remote-${consumer.kind}`).appendChild(div);
+  
+  el.srcObject = new MediaStream([consumer.track.clone()]); // TODO: don't subscribe your own video!!!
+  el.consumer = consumer;
+  // let's "yield" and return before playing, rather than awaiting on
+  // play() succeeding. play() will not succeed on a producer-paused
+  // track until the producer unpauses.
+  el.play()
+    .then(() => { })
+    .catch((e) => {
+      err(e);
+    });
+
+}
+
+function addVideoAudio_new(consumer) {
   if (!(consumer && consumer.track)) {
     return;
   }

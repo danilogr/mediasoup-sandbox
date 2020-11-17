@@ -488,6 +488,8 @@ export async function leaveRoom() {
   myVideoAdded = false;
   moderatorPeerID = '';
   isModerator = false;
+  isBlur = false;
+
 
   $('#viz1').checked = false;
   changePeekaboo();

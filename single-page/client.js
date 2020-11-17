@@ -83,6 +83,11 @@ function processGaze(GazeData) {
 
 }
 
+export async function startCalibration() {
+  $("#gaze").style.display = 'none';
+  GazeCloudAPI.StartEyeTracking();
+}
+
 //
 // entry point -- called by document.body.onload
 //
@@ -106,6 +111,9 @@ export async function main() {
 
   GazeCloudAPI.OnCalibrationComplete = function () {
     console.log('gaze Calibration Complete');
+    if (!isBlur) {
+      $("#gaze").style.display = 'block';
+    }
   }
   GazeCloudAPI.OnCamDenied = function () { console.log('camera access denied') }
   GazeCloudAPI.OnError = function (msg) { console.log('err: ' + msg) }
@@ -174,7 +182,7 @@ export async function joinRoom() {
   }, 1000);
 
   if (isModerator) {
-    // sendAudioOnly();
+    sendAudioOnly();
   }
   else {
     sendCameraStreams();
@@ -994,6 +1002,7 @@ function addMyVideoAudio() {
   let div = document.createElement('div');
   div.setAttribute('class', 'participant_div');
   div.setAttribute('id', 'participant_' + myPeerId + '_div');
+  div.style.height = document.body.clientHeight * 0.4 + 'px';
   let namediv = document.createElement('div');
   namediv.setAttribute('class', 'participant_name_div')
   let nametag = document.createElement('span');
@@ -1084,6 +1093,7 @@ function addVideoAudio(consumer) {
     let div = document.createElement('div');
     div.setAttribute('class', 'participant_div');
     div.setAttribute('id', 'participant_' + consumer.appData.peerId + '_div');
+    div.style.height = document.body.clientHeight * 0.4 + 'px';
     let namediv = document.createElement('div');
     namediv.setAttribute('class', 'participant_name_div')
     let nametag = document.createElement('span');
@@ -1405,19 +1415,26 @@ function connectDivs(elem1, elem2, color, tension) {
   var pos2 = findAbsolutePosition(elem2);
   var x2 = pos2.left;
   var y2 = pos2.top;
-
+  var coeff = 1;
   if (y1 === y2) {
     // same line
-    x1 += (elem1.offsetWidth / 2);
-    y1 += elem1.offsetHeight;
-    x2 += (elem2.offsetWidth / 2);
-    y2 += elem2.offsetHeight;
-
+    // top
+    if (y1 < document.body.clientHeight * 0.4) {
+      x1 += (elem1.offsetWidth / 2);
+      y1 += elem1.offsetHeight;
+      x2 += (elem2.offsetWidth / 2);
+      y2 += elem2.offsetHeight;
+    } else { // bottom
+      x1 += (elem1.offsetWidth / 2);
+      x2 += (elem2.offsetWidth / 2);
+      coeff = -1;
+    }
   } else if (y1 < y2) {
     // 1 is top, 2 is btm
     x1 += (elem1.offsetWidth / 2);
     y1 += elem1.offsetHeight;
     x2 += (elem2.offsetWidth / 2);
+    coeff = -1;
   } else {
     // 1 is btm, 2 is top
     x1 += (elem1.offsetWidth / 2);
@@ -1431,53 +1448,35 @@ function connectDivs(elem1, elem2, color, tension) {
   drawCircle(x1, y1, 5, color);
   // drawCircle(x2, y2, 3, color);
   createTriangleMarker(color);
-  drawCurvedLine(x1, y1, x2, y2, color, tension);
+
+  drawCurvedLine(x1, y1, x2, y2, color, tension, coeff);
 }
 
-function drawCurvedLine(x1, y1, x2, y2, color, tension) {
+function drawCurvedLine(x1, y1, x2, y2, color, tension, coeff) {
   var svg = createSVG();
   var shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
   var gap = 10;
   if (y2 === y1) {
-    y2 += gap;
+    y2 = y2 + gap * coeff;
     var delta = 20 * tension;
     var hx1 = x1;
-    var hy1 = y1 + delta;
+    var hy1 = y1 + delta * coeff;
     var hx2 = x2;
-    var hy2 = y2 + delta;
-    var path = "M " + x1 + " " + y1 +
-      " C " + hx1 + " " + hy1 + " "
-      + hx2 + " " + hy2 + " "
-      + x2 + " " + y2;
-  } else if (x1 < x2) {
-    if (y1 > y2) {
-      y2 += gap;
-    } else {
-      y2 -= gap;
-    }
-    var delta = 20 * tension;
-    var hx1 = x1;
-    var hy1 = y1 - delta;
-    var hx2 = x2;
-    var hy2 = y2 + delta;
+    var hy2 = y2 + delta * coeff;
     var path = "M " + x1 + " " + y1 +
       " C " + hx1 + " " + hy1 + " "
       + hx2 + " " + hy2 + " "
       + x2 + " " + y2;
   } else {
-    if (y1 > y2) {
-      y2 += gap;
-    } else {
-      y2 -= gap;
-    }
+    y2 += gap * coeff;
     var delta = 20 * tension;
     if (x1 === x2) {
       var delta = 0;
     }
     var hx1 = x1;
-    var hy1 = y1 + delta;
+    var hy1 = y1 - delta * coeff;
     var hx2 = x2;
-    var hy2 = y2 - delta;
+    var hy2 = y2 + delta * coeff;
     var path = "M " + x1 + " " + y1 +
       " C " + hx1 + " " + hy1 + " "
       + hx2 + " " + hy2 + " "

@@ -22,14 +22,11 @@
       <label for="pwd">Passcode:</label><br>
       <input type="password" id="pwd" name="pwd">
     </form>
-    <button type="button" onclick="GazeCloudAPI.StartEyeTracking();">Start Calibrating</button>
-    <button type="button" onclick="GazeCloudAPI.StopEyeTracking();">Stop Tracking</button>
     <button id="join-button" onclick="Client.joinRoom()">
       join room
     </button>
     <!-- <span class="arrow"> &#x21E2; </span> -->
   </div>
-
   <div id="viz_tools" style='display:none;'>
     <!-- <button id="send-camera" onclick="Client.sendCameraStreams()">
       send camera streams
@@ -41,6 +38,8 @@
     <!-- <button id="share-screen" onclick="Client.startScreenshare()">
       share screen
     </button> -->
+    <button type="button" onclick="Client.startCalibration();">Start Calibrating</button>
+    <button type="button" onclick="GazeCloudAPI.StopEyeTracking();">Stop Tracking</button>
     <span id="roomID"></span>
     <input id="viz1" type="checkbox" onchange="Client.changePeekaboo()"></input>
     <label id="viz1_label">Peekaboo</label>

@@ -36,6 +36,7 @@ const roomState = {
 let gazeMap = {};
 let nameMap = {};
 let rooms = ['pilot1', 'pilot2', 'pilot3'];
+let roomComp = {};
 let roomMap = {};
 let moderatorID = {};
 
@@ -167,8 +168,9 @@ function saveGaze2log(src, tar, vl) {
     line['tar'] = '';
   line['vizlist'] = vl;
   let ts_date = new Date(Date.now());
-  let time_ = ts_date.toLocaleTimeString("en-US");
-  let date = ts_date.toLocaleDateString("en-US").split('/').join('-');
+  let opt = {timeZoneName: 'short'}
+  let time_ = ts_date.toLocaleTimeString("en-US", opt);
+  let date = ts_date.toLocaleDateString("en-US", opt).split('/').join('-').split(', ').join('-');
   let logfile_name = 'server_' + roomMap[src] + '_' + date + '.log';
   logging(time_ + ',' + JSON.stringify(line), logfile_name);
 }

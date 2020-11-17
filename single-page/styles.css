@@ -19,8 +19,10 @@ input[type="checkbox"] {
 }
 
 .participant_div {
-  height: 240px;
-  width: 320px;
+  /* height: 240px;
+  width: 320px; */
+  /* height: 100%;*/
+  width: 90%; 
   margin-left: auto;
   margin-right: auto;
   border: 5px solid rgb(255, 255, 255);
@@ -46,11 +48,12 @@ input[type="checkbox"] {
 } 
 
 .drunk {
-  -webkit-filter: blur(5px);
+  /* -webkit-filter: blur(5px);
   -moz-filter: blur(5px);
   -o-filter: blur(5px);
   -ms-filter: blur(5px);
-  filter: blur(5px);
+  filter: blur(5px); */
+  -webkit-filter: grayscale(1);
 }
 
 .participant_name_div {
@@ -131,8 +134,8 @@ input[type="checkbox"] {
   margin: auto;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  grid-column-gap: 20%;
-  grid-row-gap: 10%;
+  grid-column-gap: 10%;
+  grid-row-gap: 5%;
 }
 
 #remote-audio {

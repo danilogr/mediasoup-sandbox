@@ -73,14 +73,6 @@ function processGaze(GazeData) {
   gaze.style.left = x_ + "px";
   gaze.style.top = y_ + "px";
 
-  // if (GazeData.state !== 0) {
-  //   if (gaze.style.display === 'block')
-  //     gaze.style.display = 'none';
-  // } else {
-  //   if (gaze.style.display === 'none')
-  //     gaze.style.display = 'block';
-  // }
-
 }
 
 export async function startCalibration() {
@@ -278,75 +270,8 @@ export async function sendCameraStreams() {
   // showCameraInfo();
 }
 
-export async function startScreenshare() {
-  log('start screen share');
-  $('#share-screen').style.display = 'none';
-
-  // make sure we've joined the room and that we have a sending
-  // transport
-  await joinRoom();
-  if (!sendTransport) {
-    sendTransport = await createTransport('send');
-  }
-
-  // get a screen share track
-  localScreen = await navigator.mediaDevices.getDisplayMedia({
-    video: true,
-    audio: true
-  });
-
-  // create a producer for video
-  screenVideoProducer = await sendTransport.produce({
-    track: localScreen.getVideoTracks()[0],
-    encodings: screenshareEncodings(),
-    appData: { mediaTag: 'screen-video' }
-  });
-
-  // create a producer for audio, if we have it
-  if (localScreen.getAudioTracks().length) {
-    screenAudioProducer = await sendTransport.produce({
-      track: localScreen.getAudioTracks()[0],
-      appData: { mediaTag: 'screen-audio' }
-    });
-  }
-
-  // handler for screen share stopped event (triggered by the
-  // browser's built-in screen sharing ui)
-  screenVideoProducer.track.onended = async () => {
-    log('screen share stopped');
-    try {
-      await screenVideoProducer.pause();
-      let { error } = await sig('close-producer',
-                                { producerId: screenVideoProducer.id });
-      await screenVideoProducer.close();
-      screenVideoProducer = null;
-      if (error) {
-        err(error);
-      }
-      if (screenAudioProducer) {
-        let { error } = await sig('close-producer',
-                                  { producerId: screenAudioProducer.id });
-        await screenAudioProducer.close();
-        screenAudioProducer = null;
-        if (error) {
-          err(error);
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    $('#local-screen-pause-ctrl').style.display = 'none';
-    $('#local-screen-audio-pause-ctrl').style.display = 'none';
-    $('#share-screen').style.display = 'initial';
-  }
-
-  $('#local-screen-pause-ctrl').style.display = 'block';
-  if (screenAudioProducer) {
-    $('#local-screen-audio-pause-ctrl').style.display = 'block';
-  }
-}
-
-export async function startCamera() {
+// TODO: change to require audio only in moderator mode
+export async function startCamera() { 
   if (localCam) {
     return;
   }
@@ -361,49 +286,7 @@ export async function startCamera() {
   }
 }
 
-// switch to sending video from the "next" camera device in our device
-// list (if we have multiple cameras)
-export async function cycleCamera() {
-  if (!(camVideoProducer && camVideoProducer.track)) {
-    warn('cannot cycle camera - no current camera track');
-    return;
-  }
-
-  log ('cycle camera');
-
-  // find "next" device in device list
-  let deviceId = await getCurrentDeviceId(),
-      allDevices = await navigator.mediaDevices.enumerateDevices(),
-      vidDevices = allDevices.filter((d) => d.kind === 'videoinput');
-  if (!vidDevices.length > 1) {
-    warn('cannot cycle camera - only one camera');
-    return;
-  }
-  let idx = vidDevices.findIndex((d) => d.deviceId === deviceId);
-  if (idx === (vidDevices.length-1)) {
-    idx = 0;
-  } else {
-    idx += 1;
-  }
-
-  // get a new video stream. might as well get a new audio stream too,
-  // just in case browsers want to group audio/video streams together
-  // from the same device when possible (though they don't seem to,
-  // currently)
-  log('getting a video stream from new device', vidDevices[idx].label);
-  localCam = await navigator.mediaDevices.getUserMedia({
-    video: { deviceId: { exact: vidDevices[idx].deviceId } },
-    audio: true
-  });
-
-  // replace the tracks we are sending
-  await camVideoProducer.replaceTrack({ track: localCam.getVideoTracks()[0] });
-  await camAudioProducer.replaceTrack({ track: localCam.getAudioTracks()[0] });
-
-  // update the user interface
-  // showCameraInfo();
-}
-
+// Not used!
 export async function stopStreams() {
   if (!(localCam || localScreen)) {
     return;
@@ -563,64 +446,12 @@ export async function subscribeToTrack(peerId, mediaTag) {
   // updatePeersDisplay();
 }
 
-export async function unsubscribeFromTrack(peerId, mediaTag) {
-  let consumer = findConsumerForTrack(peerId, mediaTag);
-  if (!consumer) {
-    return;
-  }
-
-  log('unsubscribe from track', peerId, mediaTag);
-  try {
-    await closeConsumer(consumer);
-  } catch (e) {
-    console.error(e);
-  }
-  // force update of ui
-  // updatePeersDisplay();
-}
-
-export async function pauseConsumer(consumer) {
-  if (consumer) {
-    log('pause consumer', consumer.appData.peerId, consumer.appData.mediaTag);
-    try {
-      await sig('pause-consumer', { consumerId: consumer.id });
-      await consumer.pause();
-    } catch (e) {
-      console.error(e);
-    }
-  }
-}
-
 export async function resumeConsumer(consumer) {
   if (consumer) {
     log('resume consumer', consumer.appData.peerId, consumer.appData.mediaTag);
     try {
       await sig('resume-consumer', { consumerId: consumer.id });
       await consumer.resume();
-    } catch (e) {
-      console.error(e);
-    }
-  }
-}
-
-export async function pauseProducer(producer) {
-  if (producer) {
-    log('pause producer', producer.appData.mediaTag);
-    try {
-      await sig('pause-producer', { producerId: producer.id });
-      await producer.pause();
-    } catch (e) {
-      console.error(e);
-    }
-  }
-}
-
-export async function resumeProducer(producer) {
-  if (producer) {
-    log('resume producer', producer.appData.mediaTag);
-    try {
-      await sig('resume-producer', { producerId: producer.id });
-      await producer.resume();
     } catch (e) {
       console.error(e);
     }
@@ -823,61 +654,6 @@ function findConsumerForTrack(peerId, mediaTag) {
 // -- user interface --
 //
 
-export function getCamPausedState() {
-  return !$('#local-cam-checkbox').checked;
-}
-
-export function getMicPausedState() {
-  return !$('#local-mic-checkbox').checked;
-}
-
-export function getScreenPausedState() {
-  return !$('#local-screen-checkbox').checked;
-}
-
-export function getScreenAudioPausedState() {
-  return !$('#local-screen-audio-checkbox').checked;
-}
-
-export async function changeCamPaused() {
-  if (getCamPausedState()) {
-    pauseProducer(camVideoProducer);
-    $('#local-cam-label').innerHTML = 'camera (paused)';
-  } else {
-    resumeProducer(camVideoProducer);
-    $('#local-cam-label').innerHTML = 'camera';
-  }
-}
-
-export async function changeMicPaused() {
-  if (getMicPausedState()) {
-    pauseProducer(camAudioProducer);
-    $('#local-mic-label').innerHTML = 'mic (paused)';
-  } else {
-    resumeProducer(camAudioProducer);
-    $('#local-mic-label').innerHTML = 'mic';
-  }
-}
-
-export async function changeScreenPaused() {
-  if (getScreenPausedState()) {
-    pauseProducer(screenVideoProducer);
-    $('#local-screen-label').innerHTML = 'screen (paused)';
-  } else {
-    resumeProducer(screenVideoProducer);
-    $('#local-screen-label').innerHTML = 'screen';
-  }
-}
-
-export async function changeScreenAudioPaused() {
-  if (getScreenAudioPausedState()) {
-    pauseProducer(screenAudioProducer);
-    $('#local-screen-audio-label').innerHTML = 'screen (paused)';
-  } else {
-    resumeProducer(screenAudioProducer);
-    $('#local-screen-audio-label').innerHTML = 'screen';
-  }
-}
 
 export async function autoSubscribe(sortedPeers) {
   for (let peer of sortedPeers) {
@@ -918,85 +694,6 @@ export async function updatePeersDisplay(peersInfo = lastPollSyncData,
 
 }
 
-function makeTrackControlEl(peerName, mediaTag, mediaInfo) {
-  let div = document.createElement('div'),
-      peerId = (peerName === 'my' ? myPeerId : peerName),
-      consumer = findConsumerForTrack(peerId, mediaTag);
-  div.classList = `track-subscribe track-subscribe-${peerId}`;
-
-  if (peerName !== 'my') {
-    let sub = document.createElement('button');
-    if (!consumer) {
-      sub.innerHTML += 'subscribe'
-      sub.onclick = () => subscribeToTrack(peerId, mediaTag);
-      div.appendChild(sub);
-
-    } else {
-      sub.innerHTML += 'unsubscribe'
-      sub.onclick = () => unsubscribeFromTrack(peerId, mediaTag);
-      div.appendChild(sub);
-    }
-  }
-  
-
-  let trackDescription = document.createElement('span');
-  trackDescription.innerHTML = `${peerName} ${mediaTag}`
-  div.appendChild(trackDescription);
-
-  // 9/14 don't need those
-  // try {
-  //   if (mediaInfo) {
-  //     let producerPaused = mediaInfo.paused;
-  //     let prodPauseInfo = document.createElement('span');
-  //     prodPauseInfo.innerHTML = producerPaused ? '[producer paused]'
-  //                                              : '[producer playing]';
-  //     div.appendChild(prodPauseInfo);
-  //   }
-  // } catch (e) {
-  //   console.error(e);
-  // }
-
-  // if (consumer) {
-  //   let pause = document.createElement('span'),
-  //       checkbox = document.createElement('input'),
-  //       label = document.createElement('label');
-  //   pause.classList = 'nowrap';
-  //   checkbox.type = 'checkbox';
-  //   checkbox.checked = !consumer.paused;
-  //   checkbox.onchange = async () => {
-  //     if (checkbox.checked) {
-  //       await resumeConsumer(consumer);
-  //     } else {
-  //       await pauseConsumer(consumer);
-  //     }
-  //     updatePeersDisplay();
-  //   }
-  //   label.id = `consumer-stats-${consumer.id}`;
-  //   if (consumer.paused) {
-  //     label.innerHTML = '[consumer paused]'
-  //   } else {
-  //     let stats = lastPollSyncData[myPeerId].stats[consumer.id],
-  //         bitrate = '-';
-  //     if (stats) {
-  //       bitrate = Math.floor(stats.bitrate / 1000.0);
-  //     }
-  //     label.innerHTML = `[consumer playing ${bitrate} kb/s]`;
-  //   }
-  //   pause.appendChild(checkbox);
-  //   pause.appendChild(label);
-  //   div.appendChild(pause);
-
-  //   if (consumer.kind === 'video') {
-  //     let remoteProducerInfo = document.createElement('span');
-  //     remoteProducerInfo.classList = 'nowrap track-ctrl';
-  //     remoteProducerInfo.id = `track-ctrl-${consumer.producerId}`;
-  //     div.appendChild(remoteProducerInfo);
-  //   }
-  // }
-
-  return div;
-}
-
 function addMyVideoAudio() {
   if (isModerator) {
     return;
@@ -1027,51 +724,6 @@ function addMyVideoAudio() {
   console.log('HERE self-video!!!');
 
   // el.consumer = consumer;
-  // let's "yield" and return before playing, rather than awaiting on
-  // play() succeeding. play() will not succeed on a producer-paused
-  // track until the producer unpauses.
-  el.play()
-    .then(() => { })
-    .catch((e) => {
-      err(e);
-    });
-
-}
-
-function addVideoAudio_old(consumer) {
-  if (!(consumer && consumer.track)) {
-    return;
-  }
-  let div = document.createElement('div');
-  div.setAttribute('class', 'participant_div');
-  div.setAttribute('id', 'participant_' + consumer.appData.peerId + '_div');
-  let namediv = document.createElement('div');
-  namediv.setAttribute('class', 'participant_name_div')
-  let nametag = document.createElement('span');
-  nametag.setAttribute('id', 'participant_' + consumer.appData.peerId + '_name');
-  nametag.innerHTML = currentNameMap['participant_' + consumer.appData.peerId];
-  namediv.appendChild(nametag);
-  let el = document.createElement(consumer.kind);
-  // set some attributes on our audio and video elements to make
-  // mobile Safari happy. note that for audio to play you need to be
-  // capturing from the mic/camera
-  el.setAttribute('id', 'participant_' + consumer.appData.peerId);
-  console.log('add video here!!!')
-  if (consumer.kind === 'video') {
-    el.setAttribute('playsinline', true);
-    el.setAttribute('class', "participant_video");
-  } else {
-    el.setAttribute('playsinline', true);
-    el.setAttribute('autoplay', true);
-  }
-  div.appendChild(el);
-  div.appendChild(namediv);
-  // console.log(div.offsetWidth + "div's width!!!");
-  // div.style.width = div.offsetWidth * 3 / 4 + 'px';
-  $(`#remote-${consumer.kind}`).appendChild(div);
-  
-  el.srcObject = new MediaStream([consumer.track.clone()]); // TODO: don't subscribe your own video!!!
-  el.consumer = consumer;
   // let's "yield" and return before playing, rather than awaiting on
   // play() succeeding. play() will not succeed on a producer-paused
   // track until the producer unpauses.
@@ -1135,39 +787,6 @@ function removeVideoAudio(consumer) {
       v.parentNode.parentNode.removeChild(v.parentNode);
     }
   });
-}
-
-async function showCameraInfo() {
-  let deviceId = await getCurrentDeviceId(),
-      infoEl = $('#camera-info');
-  if (!deviceId) {
-    infoEl.innerHTML = '';
-    return;
-  }
-  let devices = await navigator.mediaDevices.enumerateDevices(),
-      deviceInfo = devices.find((d) => d.deviceId === deviceId);
-  infoEl.innerHTML = `
-      ${ deviceInfo.label }
-      <button onclick="Client.cycleCamera()">switch camera</button>
-  `;
-}
-
-export async function getCurrentDeviceId() {
-  if (!camVideoProducer) {
-    return null;
-  }
-  let deviceId = camVideoProducer.track.getSettings().deviceId;
-  if (deviceId) {
-    return deviceId;
-  }
-  // Firefox doesn't have deviceId in MediaTrackSettings object
-  let track = localCam && localCam.getVideoTracks()[0];
-  if (!track) {
-    return null;
-  }
-  let devices = await navigator.mediaDevices.enumerateDevices(),
-      deviceInfo = devices.find((d) => d.label.startsWith(track.label));
-  return deviceInfo.deviceId;
 }
 
 function updateActiveSpeaker() {
@@ -1382,7 +1001,6 @@ function updateGazeInfo(target, gazeMap) {
 
 }
 
-
 function createSVG() {
   var svg = document.getElementById("svg-canvas");
   if (null == svg) {
@@ -1493,7 +1111,6 @@ function drawCurvedLine(x1, y1, x2, y2, color, tension, coeff) {
   svg.appendChild(shape);
 }
 
-
 function createTriangleMarker(color) {
   if (markerInitialized)
     return;
@@ -1521,128 +1138,6 @@ function createTriangleMarker(color) {
   defs.appendChild(marker);
 }
 
-function updateCamVideoProducerStatsDisplay() {
-  let tracksEl = $('#camera-producer-stats');
-  tracksEl.innerHTML = '';
-  if (!camVideoProducer || camVideoProducer.paused) {
-    return;
-  }
-  // makeProducerTrackSelector({
-  //   internalTag: 'local-cam-tracks',
-  //   container: tracksEl,
-  //   peerId: myPeerId,
-  //   producerId: camVideoProducer.id,
-  //   currentLayer: camVideoProducer.maxSpatialLayer,
-  //   layerSwitchFunc: (i) => {
-  //     console.log('client set layers for cam stream');
-  //     camVideoProducer.setMaxSpatialLayer(i) }
-  // });
-}
-
-function updateScreenVideoProducerStatsDisplay() {
-  let tracksEl = $('#screen-producer-stats');
-  tracksEl.innerHTML = '';
-  if (!screenVideoProducer || screenVideoProducer.paused) {
-    return;
-  }
-  makeProducerTrackSelector({
-    internalTag: 'local-screen-tracks',
-    container: tracksEl,
-    peerId: myPeerId,
-    producerId: screenVideoProducer.id,
-    currentLayer: screenVideoProducer.maxSpatialLayer,
-    layerSwitchFunc: (i) => {
-      console.log('client set layers for screen stream');
-      screenVideoProducer.setMaxSpatialLayer(i) }
-  });
-}
-
-function updateConsumersStatsDisplay() {
-  try {
-    for (let consumer of consumers) {
-      let label = $(`#consumer-stats-${consumer.id}`);
-      if (label) {
-        if (consumer.paused) {
-          label.innerHTML = '(consumer paused)'
-        } else {
-          let stats = lastPollSyncData[myPeerId].stats[consumer.id],
-              bitrate = '-';
-          if (stats) {
-            bitrate = Math.floor(stats.bitrate / 1000.0);
-          }
-          label.innerHTML = `[consumer playing ${bitrate} kb/s]`;
-        }
-      }
-
-      let mediaInfo = lastPollSyncData[consumer.appData.peerId] &&
-                      lastPollSyncData[consumer.appData.peerId]
-                        .media[consumer.appData.mediaTag];
-      if (mediaInfo && !mediaInfo.paused) {
-        let tracksEl = $(`#track-ctrl-${consumer.producerId}`);
-        if (tracksEl && lastPollSyncData[myPeerId]
-                               .consumerLayers[consumer.id]) {
-          tracksEl.innerHTML = '';
-          let currentLayer = lastPollSyncData[myPeerId]
-                               .consumerLayers[consumer.id].currentLayer;
-          makeProducerTrackSelector({
-            internalTag: consumer.id,
-            container: tracksEl,
-            peerId: consumer.appData.peerId,
-            producerId: consumer.producerId,
-            currentLayer: currentLayer,
-            layerSwitchFunc: (i) => {
-              console.log('ask server to set layers');
-              sig('consumer-set-layers', { consumerId: consumer.id,
-                                           spatialLayer: i });
-            }
-          });
-        }
-      }
-    }
-  } catch (e) {
-    log('error while updating consumers stats display', e);
-  }
-}
-
-function makeProducerTrackSelector({ internalTag, container, peerId, producerId,
-                                     currentLayer, layerSwitchFunc }) {
-  try {
-    let pollStats = lastPollSyncData[peerId] &&
-                    lastPollSyncData[peerId].stats[producerId];
-    if (!pollStats) {
-      return;
-    }
-
-    let stats = [...Array.from(pollStats)]
-                  .sort((a,b) => a.rid > b.rid ? 1 : (a.rid<b.rid ? -1 : 0));
-    let i=0;
-    for (let s of stats) {
-      let div = document.createElement('div'),
-          radio = document.createElement('input'),
-          label = document.createElement('label'),
-          x = i;
-      radio.type = 'radio';
-      radio.name = `radio-${internalTag}-${producerId}`;
-      radio.checked = currentLayer == undefined ?
-                          (i === stats.length-1) :
-                          (i === currentLayer);
-      radio.onchange = () => layerSwitchFunc(x);
-      let bitrate = Math.floor(s.bitrate / 1000);
-      label.innerHTML = `${bitrate} kb/s`;
-      div.appendChild(radio);
-      div.appendChild(label);
-      container.appendChild(div);
-      i++;
-    }
-    if (i) {
-      let txt = document.createElement('div');
-      txt.innerHTML = 'tracks';
-      container.insertBefore(txt, container.firstChild);
-    }
-  } catch (e) {
-    log('error while updating track stats display', e);
-  }
-}
 
 //
 // encodings for outgoing video
@@ -1659,12 +1154,6 @@ const CAM_VIDEO_SIMULCAST_ENCODINGS =
 
 function camEncodings() {
   return CAM_VIDEO_SIMULCAST_ENCODINGS;
-}
-
-// how do we limit bandwidth for screen share streams?
-//
-function screenshareEncodings() {
-  null;
 }
 
 //

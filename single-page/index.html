@@ -41,11 +41,11 @@
     <button type="button" onclick="Client.startCalibration();">Start Calibrating</button>
     <button type="button" onclick="GazeCloudAPI.StopEyeTracking();">Stop Tracking</button>
     <span id="roomID"></span>
-    <input id="viz1" type="checkbox" onchange="Client.changePeekaboo()"></input>
+    <input id="viz1" type="checkbox" checked onchange="Client.changePeekaboo()"></input>
     <label id="viz1_label">Peekaboo</label>
     <input id="viz2" type="checkbox" onchange="Client.changeSpotlight()"></input>
     <label id="viz2_label">Spotlight</label>
-    <input id="viz3" type="checkbox" onchange="Client.changeSpy()"></input>
+    <input id="viz3" type="checkbox" checked onchange="Client.changeSpy()"></input>
     <label id="viz3_label">Snoop</label>
     <button id="gaze_rep" onclick="Client.changeGaze()">Toggle gaze</button>
     <span id="moderator_status">Moderator not joined</span>

@@ -137,7 +137,7 @@ html, body {
     function drawCurvedLine(x1, y1, x2, y2, color, tension, coeff) {
         var svg = createSVG();
         var shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        var gap = 10;
+        var gap = 20;
         if (y2 === y1) {
             y2 = y2 + gap * coeff;
             var delta = 20 * tension;
@@ -189,8 +189,8 @@ html, body {
         marker.setAttribute('refX', 0);
         marker.setAttribute('refY', 5);
         marker.setAttribute('markerUnits', 'strokeWidth');
-        marker.setAttribute('markerWidth', '10');
-        marker.setAttribute('markerHeight', '5');
+        marker.setAttribute('markerWidth', '20');
+        marker.setAttribute('markerHeight', '10');
         marker.setAttribute('orient', 'auto');
         marker.setAttributeNS(null, "fill", color);
         var path = document.createElementNS('http://www.w3.org/2000/svg',
@@ -239,9 +239,9 @@ html, body {
         // connectDivs(document.getElementById('d3'), document.getElementById('d1'), '#00FF7F', 3);
         // connectDivs(document.getElementById('d3'), document.getElementById('d2'), '#00FF7F', 3);
         // connectDivs(document.getElementById('d3'), document.getElementById('d4'), '#00FF7F', 3);
-        connectDivs(document.getElementById('d4'), document.getElementById('d1'), '#00FF7F', 3); 
-        connectDivs(document.getElementById('d4'), document.getElementById('d2'), '#00FF7F', 3);
-        connectDivs(document.getElementById('d4'), document.getElementById('d3'), '#00FF7F', 3);
+        connectDivs(document.getElementById('d4'), document.getElementById('d1'), '#2565AE', 4); 
+        // connectDivs(document.getElementById('d4'), document.getElementById('d2'), '#3C99DC', 3);
+        // connectDivs(document.getElementById('d4'), document.getElementById('d3'), '#3C99DC', 3);
         
     }
 

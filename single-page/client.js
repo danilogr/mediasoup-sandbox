@@ -886,6 +886,10 @@ export async function sendGazeDirection() {
 export async function changePeekaboo() {
   // remove all viz if ckecked -> unchecked
   if (!$('#viz1').checked) {
+    $('#viz1').checked = true;
+    return;
+  }
+  if (!$('#viz1').checked) {
     $$('.x_icon_style').forEach((el) => {
       el.remove();
     });
@@ -912,6 +916,10 @@ function updatePeekaboo(gazeDistribution, gazeMap_) {
 
 export async function changeSpotlight() {
   // remove all viz if ckecked -> unchecked
+  if ($('#viz2').checked) {
+    $('#viz2').checked = false;
+    return;
+  }
   if (!$('#viz2').checked) {
     justUnchecked = true;
   }
@@ -928,6 +936,10 @@ function updateSpotlight(distributionMap) {
 export async function changeSpy() {
   // remove all viz if ckecked -> unchecked
   if (!$('#viz3').checked) {
+    $('#viz3').checked = true;
+    return;
+  }
+  if (!$('#viz3').checked) {
     if ($('#svg-canvas') !== null) {
       $('#svg-canvas').remove();
     }
@@ -942,7 +954,7 @@ function updateSpy(target, gazeMap_, distributionMap) {
   if (target in gazeMap_) {
     const gaze = gazeMap_[target];
     if ((gaze in distributionMap) && (gaze !== target)) {
-      connectDivs($(`#${target}_div`), $(`#${gaze}_div`), '#00FF7F', 4);
+      connectDivs($(`#${target}_div`), $(`#${gaze}_div`), '#3C99DC', 4);
       // $('#' + target + '_name').innerHTML = currentNameMap[target] + ' -> ' + currentNameMap[gaze];
     }
   }
@@ -1075,7 +1087,7 @@ function connectDivs(elem1, elem2, color, tension) {
 function drawCurvedLine(x1, y1, x2, y2, color, tension, coeff) {
   var svg = createSVG();
   var shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  var gap = 10;
+  var gap = 20;
   if (y2 === y1) {
     y2 = y2 + gap * coeff;
     var delta = 20 * tension;
@@ -1127,8 +1139,8 @@ function createTriangleMarker(color) {
   marker.setAttribute('refX', 0);
   marker.setAttribute('refY', 5);
   marker.setAttribute('markerUnits', 'strokeWidth');
-  marker.setAttribute('markerWidth', '10');
-  marker.setAttribute('markerHeight', '5');
+  marker.setAttribute('markerWidth', '20');
+  marker.setAttribute('markerHeight', '10');
   marker.setAttribute('orient', 'auto');
   marker.setAttributeNS(null, "fill", color);
   var path = document.createElementNS('http://www.w3.org/2000/svg',

@@ -7,6 +7,7 @@
     window.localStorage.setItem('debug', '*');
   </script>
   <script src="https://api.gazerecorder.com/GazeCloudAPI.js"></script>
+  <script src="./webgazer.js"></script>
   <script src="client-bundle.js"></script>
 
 </head>
@@ -38,12 +39,17 @@
     <!-- <button id="share-screen" onclick="Client.startScreenshare()">
       share screen
     </button> -->
-    <button type="button" onclick="Client.startCalibration();">Start Calibrating</button>
-    <button type="button" onclick="GazeCloudAPI.StopEyeTracking();">Stop Tracking</button>
+    <form id="webgazeropts" method="get" action="calibration.html">
+      <button id="cali" type="submit">Start calibrating</button>
+      <button id="wg_start" type="button" onclick="Client.beginWG()">Start tracking</button>
+      <button id="wg_stop" type="button" onclick="Client.endWG();">Stop tracking</button>
+    </form>
+    <!-- <button type="button" onclick="Client.startCalibration();">Start Calibrating</button>
+    <button type="button" onclick="GazeCloudAPI.StopEyeTracking();">Stop Tracking</button> -->
     <span id="roomID"></span>
     <input id="viz1" type="checkbox" checked onchange="Client.changePeekaboo()"></input>
     <label id="viz1_label">Peekaboo</label>
-    <input id="viz2" type="checkbox" onchange="Client.changeSpotlight()"></input>
+    <input id="viz2" type="checkbox" checked onchange="Client.changeSpotlight()"></input>
     <label id="viz2_label">Spotlight</label>
     <input id="viz3" type="checkbox" checked onchange="Client.changeSpy()"></input>
     <label id="viz3_label">Snoop</label>

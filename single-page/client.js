@@ -41,7 +41,8 @@ export let device,
            currentRoomMap = {},
            isBlur = false,
            isModerator = false,
-           moderatorPeerID = '';
+           moderatorPeerID = '',
+           wg_started = false;
 
 export async function showCoords(event) {
   var cX = event.clientX;
@@ -101,21 +102,83 @@ export async function main() {
   // the page unloads
   window.addEventListener('unload', () => sig('leave', {}, true));
 
-  GazeCloudAPI.OnCalibrationComplete = function () {
-    console.log('gaze Calibration Complete');
-    if (!isBlur) {
-      $("#gaze").style.display = 'block';
-    }
-  }
-  GazeCloudAPI.OnCamDenied = function () { console.log('camera access denied') }
-  GazeCloudAPI.OnError = function (msg) { console.log('err: ' + msg) }
-  GazeCloudAPI.UseClickRecalibration = true;
-  GazeCloudAPI.OnResult = processGaze
+  // ========== If use GazeCloud ==========
+  // GazeCloudAPI.OnCalibrationComplete = function () {
+  //   console.log('gaze Calibration Complete');
+  //   if (!isBlur) {
+  //     $("#gaze").style.display = 'block';
+  //   }
+  // }
+  // GazeCloudAPI.OnCamDenied = function () { console.log('camera access denied') }
+  // GazeCloudAPI.OnError = function (msg) { console.log('err: ' + msg) }
+  // GazeCloudAPI.UseClickRecalibration = true;
+  // GazeCloudAPI.OnResult = processGaze
+
+  // ========== If use WebGazer ==========
+  webgazer.params.showVideoPreview = true;
+  window.applyKalmanFilter = true;
+  window.saveDataAcrossSessions = true;
+
+  await webgazer.setRegression('ridge') /* currently must set regression and tracker */
+    //.setTracker('clmtrackr')
+    .setGazeListener(function (data, clock) {
+      //   console.log(data); /* data is an object containing an x and y key which are the x and y prediction coordinates (no bounds limiting) */
+      //   console.log(clock); /* elapsed time in milliseconds since webgazer.begin() was called */
+      if (data == null) {
+        return;
+      }
+      var xprediction = data.x; //these x coordinates are relative to the viewport
+      var yprediction = data.y; //these y coordinates are relative to the viewport
+
+      gazeX = xprediction;
+      gazeY = yprediction;
+
+      var gaze = document.getElementById("gaze");
+      xprediction -= gaze.clientWidth / 2;
+      yprediction -= gaze.clientHeight / 2;
+
+      gaze.style.left = xprediction + "px";
+      gaze.style.top = yprediction + "px";
+
+      // console.log(xprediction, yprediction);
+      // console.log(elapsedTime);
+    });
+  // webgazer.showPredictionPoints(true); /* shows a square every 100 milliseconds where current prediction is */
+  function hideVideoElements() {
+    webgazer.showPredictionPoints(false);
+    webgazer.showVideo(false);
+    webgazer.showFaceOverlay(false);
+    webgazer.showFaceFeedbackBox(false);
+    //webgazer.showGazeDot(false);
+  };
+  hideVideoElements();
+  webgazer.loadGlobalData();
+
 }
 
 //
 // meeting control actions
 //
+
+export async function beginWG() {
+  if (!wg_started) {
+    await webgazer.begin();
+    wg_started = true;
+    if (!isBlur) {
+      $("#gaze").style.display = 'block';
+    }
+  }
+}
+
+export async function endWG() {
+  if (wg_started) {
+    await webgazer.end();
+    wg_started = false;
+    // if (!isBlur) {
+    //   $("#gaze").style.display = 'block';
+    // }
+  }
+}
 
 export async function joinRoom() {
   if (joined) {
@@ -374,12 +437,12 @@ export async function leaveRoom() {
   isBlur = false;
 
 
-  $('#viz1').checked = false;
-  changePeekaboo();
-  $('#viz2').checked = false;
-  changeSpotlight();
-  $('#viz3').checked = false;
-  changeSpy();
+  // $('#viz1').checked = false;
+  // changePeekaboo();
+  // $('#viz2').checked = false;
+  // changeSpotlight();
+  // $('#viz3').checked = false;
+  // changeSpy();
 
   $('#viz_tools').style.display = 'none';
 
@@ -884,11 +947,17 @@ export async function sendGazeDirection() {
 }
 
 export async function changePeekaboo() {
-  // remove all viz if ckecked -> unchecked
-  if (!$('#viz1').checked) {
+  if (!isModerator) {
     $('#viz1').checked = true;
     return;
   }
+
+  // if (!$('#viz1').checked) {
+  //   $('#viz1').checked = true;
+  //   return;
+  // }
+
+  // remove all viz if ckecked -> unchecked
   if (!$('#viz1').checked) {
     $$('.x_icon_style').forEach((el) => {
       el.remove();
@@ -915,11 +984,16 @@ function updatePeekaboo(gazeDistribution, gazeMap_) {
 }
 
 export async function changeSpotlight() {
-  // remove all viz if ckecked -> unchecked
-  if ($('#viz2').checked) {
-    $('#viz2').checked = false;
+  if (!isModerator) {
+    $('#viz2').checked = true;
     return;
   }
+
+  // if ($('#viz2').checked) {
+  //   $('#viz2').checked = false;
+  //   return;
+  // }
+  // remove all viz if ckecked -> unchecked
   if (!$('#viz2').checked) {
     justUnchecked = true;
   }
@@ -934,11 +1008,16 @@ function updateSpotlight(distributionMap) {
 }
 
 export async function changeSpy() {
-  // remove all viz if ckecked -> unchecked
-  if (!$('#viz3').checked) {
+  if (!isModerator) {
     $('#viz3').checked = true;
     return;
   }
+
+  // if (!$('#viz3').checked) {
+  //   $('#viz3').checked = true;
+  //   return;
+  // }
+  // remove all viz if ckecked -> unchecked
   if (!$('#viz3').checked) {
     if ($('#svg-canvas') !== null) {
       $('#svg-canvas').remove();

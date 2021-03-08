@@ -5,6 +5,8 @@ const express = require('express');
 const https = require('https');
 const fs = require('fs');
 const logging = require('log-to-file');
+// const hark = require('hark')
+// const getUserMedia = require('getusermedia')
 
 const expressApp = express();
 let httpsServer;
@@ -175,6 +177,17 @@ function saveGaze2log(src, tar, vl) {
   logging(time_ + ',' + JSON.stringify(line), logfile_name);
 }
 
+function saveSpeaking(src, status) {
+  let line = {};
+  line['src'] = nameMap[src];
+  line['speaking'] = status;
+  let ts_date = new Date(Date.now());
+  let opt = { timeZoneName: 'short' }
+  let time_ = ts_date.toLocaleTimeString("en-US", opt);
+  let date = ts_date.toLocaleDateString("en-US", opt).split('/').join('-').split(', ').join('-');
+  let logfile_name = 'server_speaking_' + roomMap[src] + '_' + date + '.log';
+  logging(time_ + ',' + JSON.stringify(line), logfile_name);
+}
 
 //
 // start mediasoup with a single worker and router
@@ -203,6 +216,7 @@ async function startMediasoup() {
 	});
   audioLevelObserver.on('volumes', (volumes) => {
     const { producer, volume } = volumes[0];
+    // console.log('volumes test:', volumes);
     log('audio-level volumes event', producer.appData.peerId, volume);
     roomState.activeSpeaker.producerId = producer.id;
     roomState.activeSpeaker.volume = volume;
@@ -798,6 +812,18 @@ expressApp.post('/signaling/gaze', async (req, res) => {
     res.send({gazeMap});
   } catch (e) {
     console.error('error in /signaling/gaze', e);
+    res.send({ error: e });
+  }
+});
+
+expressApp.post('/signaling/speaking', async (req, res) => {
+  try {
+    let { src, status } = req.body;
+    if (src !== '') {
+      saveSpeaking(src, status);
+    }
+  } catch (e) {
+    console.error('error in /signaling/speaking', e);
     res.send({ error: e });
   }
 });

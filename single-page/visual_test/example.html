@@ -49,7 +49,12 @@ html, body {
   grid-row-gap: 5%;
 }
     </style>
-    
+
+<link href="http://raw.githack.com/krispo/yarrow/v1.1.1/build/yarrow.css" rel="stylesheet" type="text/css" />
+
+<script src="http://d3js.org/d3-selection.v0.7.min.js"></script>
+<script src="http://raw.githack.com/krispo/svg-path-utils/v0.0.3/build/svg-path-utils.min.js"></script>
+<script src="http://raw.githack.com/krispo/yarrow/v1.1.1/build/yarrow.min.js"></script>
 </head>
 <body>
 
@@ -124,53 +129,69 @@ html, body {
             y2 += elem2.offsetHeight;
         }
 
-        // var width = x2 - x1;
-        // var height = y2 - y1;
-
-        drawCircle(x1, y1, 5, color);
-        // drawCircle(x2, y2, 3, color);
-        createTriangleMarker(color);
-
         drawCurvedLine(x1, y1, x2, y2, color, tension, coeff);
     }
 
     function drawCurvedLine(x1, y1, x2, y2, color, tension, coeff) {
-        var svg = createSVG();
-        var shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        var gap = 20;
+        var xcoeff = 1 / coeff;//-coeff;
         if (y2 === y1) {
-            y2 = y2 + gap * coeff;
+            // y2 = y2 + gap * coeff;
+            if (x1 > x2) xcoeff = -1 / coeff
             var delta = 20 * tension;
             var hx1 = x1;
             var hy1 = y1 + delta * coeff;
-            var hx2 = x2;
+            var hx2 = x2 - xcoeff * delta * coeff;
             var hy2 = y2 + delta * coeff;
             var path = "M " + x1 + " " + y1 +
                 " C " + hx1 + " " + hy1 + " "
                 + hx2 + " " + hy2 + " "
                 + x2 + " " + y2;
         } else {
-            y2 += gap * coeff;
+            // y2 += gap * coeff;
+            if (x1 < x2) xcoeff = -1 / coeff
             var delta = 20 * tension;
             if (x1 === x2) {
                 var delta = 0;
             }
             var hx1 = x1;
             var hy1 = y1 - delta * coeff;
-            var hx2 = x2;
+            var hx2 = x2 + xcoeff * delta * coeff;
             var hy2 = y2 + delta * coeff;
             var path = "M " + x1 + " " + y1 +
                 " C " + hx1 + " " + hy1 + " "
                 + hx2 + " " + hy2 + " "
                 + x2 + " " + y2;
         } 
-        shape.setAttributeNS(null, "d", path);
-        shape.setAttributeNS(null, "fill", "none");
-        shape.setAttributeNS(null, "stroke", color);
-        shape.setAttributeNS(null, "stroke-width", 3);
-        shape.setAttributeNS(null, "stroke-linecap", 'round');
-        shape.setAttributeNS(null, "marker-end", "url(#triangle)");
-        svg.appendChild(shape);
+        // shape.setAttributeNS(null, "d", path);
+        // shape.setAttributeNS(null, "fill", "none");
+        // shape.setAttributeNS(null, "stroke", color);
+        // shape.setAttributeNS(null, "stroke-width", 3);
+        // shape.setAttributeNS(null, "stroke-linecap", 'round');
+        // shape.setAttributeNS(null, "marker-end", "url(#triangle)");
+        // svg.appendChild(shape);
+        var ya = new yarrow.Yarrow();
+        var ar = ya.arrow({
+            x1: 0,
+            y1: 0,
+            x2: document.body.clientWidth,
+            y2: document.body.clientHeight,
+            d: path,
+            duration: 500,     // arrow duration
+            duration1: 125,     // tip1 duration
+            delay2: 500 + 125, // tip2 delay
+            duration2: 125,      // tip2 duration
+            // text: "looking at",
+            // textStartOffset: 80,
+            arrowStyles: {
+                'stroke': color,//'#ff5a00',
+                'stroke-width': 10
+            },
+            // textStyles: {
+            //     'fill': '#008080',
+            //     'font-size': 20,
+            //     'font-weight': 'bold'
+            // }
+        }).render()
     }
 
     function createTriangleMarker(color) {
@@ -230,7 +251,7 @@ html, body {
         document.getElementById('d3').style.height = h + 'px';
         document.getElementById('d4').style.height = h + 'px';
 
-        // connectDivs(document.getElementById('d1'), document.getElementById('d2'), '#00FF7F', 3);
+        connectDivs(document.getElementById('d4'), document.getElementById('d3'), '#ff5a00', 10);
         // connectDivs(document.getElementById('d1'), document.getElementById('d3'), '#00FF7F', 3);
         // connectDivs(document.getElementById('d1'), document.getElementById('d4'), '#00FF7F', 3);
         // connectDivs(document.getElementById('d2'), document.getElementById('d1'), '#00FF7F', 3);
@@ -239,7 +260,7 @@ html, body {
         // connectDivs(document.getElementById('d3'), document.getElementById('d1'), '#00FF7F', 3);
         // connectDivs(document.getElementById('d3'), document.getElementById('d2'), '#00FF7F', 3);
         // connectDivs(document.getElementById('d3'), document.getElementById('d4'), '#00FF7F', 3);
-        connectDivs(document.getElementById('d4'), document.getElementById('d1'), '#2565AE', 4); 
+        // connectDivs(document.getElementById('d4'), document.getElementById('d1'), '#2565AE', 4); 
         // connectDivs(document.getElementById('d4'), document.getElementById('d2'), '#3C99DC', 3);
         // connectDivs(document.getElementById('d4'), document.getElementById('d3'), '#3C99DC', 3);
         

@@ -3,8 +3,7 @@ module.exports = {
   //
   /*  For prod  */
   httpIp: '0.0.0.0',
-  /*  For local dev  */
-  // httpIp: '127.0.0.1',
+
   httpPort: 3000,
   httpPeerStale: 15000,
 

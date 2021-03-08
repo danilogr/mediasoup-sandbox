@@ -25,10 +25,18 @@ input[type="checkbox"] {
   width: 90%; 
   margin-left: auto;
   margin-right: auto;
+  opacity: 100%;
   border: 5px solid rgb(255, 255, 255);
   border-radius: 25px;
   /* backdrop-filter: blur(5px); */
 } 
+
+.opacity_transition {
+  -webkit-transition: opacity 0.5s ease-out;
+  -moz-transition: opacity 0.5s ease-out;
+  -o-transition: opacity 0.5s ease-out;
+  transition: opacity 0.5s ease-out;
+}
 
 .obs_participant_div {
   width: 32%;

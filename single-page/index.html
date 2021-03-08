@@ -9,6 +9,11 @@
   <script src="https://api.gazerecorder.com/GazeCloudAPI.js"></script>
   <script src="./webgazer.js"></script>
   <script src="client-bundle.js"></script>
+  <link href="http://raw.githack.com/krispo/yarrow/v1.1.1/build/yarrow.css" rel="stylesheet" type="text/css" />
+  
+  <script src="http://d3js.org/d3-selection.v0.7.min.js"></script>
+  <script src="http://raw.githack.com/krispo/svg-path-utils/v0.0.3/build/svg-path-utils.min.js"></script>
+  <script src="http://raw.githack.com/krispo/yarrow/v1.1.1/build/yarrow.min.js"></script>
 
 </head>
 <body onload="Client.main()">
@@ -39,13 +44,13 @@
     <!-- <button id="share-screen" onclick="Client.startScreenshare()">
       share screen
     </button> -->
-    <form id="webgazeropts" method="get" action="calibration.html">
+    <!-- <form id="webgazeropts" method="get" action="calibration.html">
       <button id="cali" type="submit">Start calibrating</button>
       <button id="wg_start" type="button" onclick="Client.beginWG()">Start tracking</button>
       <button id="wg_stop" type="button" onclick="Client.endWG();">Stop tracking</button>
-    </form>
-    <!-- <button type="button" onclick="Client.startCalibration();">Start Calibrating</button>
-    <button type="button" onclick="GazeCloudAPI.StopEyeTracking();">Stop Tracking</button> -->
+    </form> -->
+    <button type="button" onclick="Client.startCalibration();">Start Calibrating</button>
+    <button type="button" onclick="GazeCloudAPI.StopEyeTracking();">Stop Tracking</button>
     <span id="roomID"></span>
     <input id="viz1" type="checkbox" checked onchange="Client.changePeekaboo()"></input>
     <label id="viz1_label">Peekaboo</label>

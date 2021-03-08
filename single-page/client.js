@@ -3,6 +3,9 @@ import * as config from './config';
 import * as mediasoup from 'mediasoup-client';
 import deepEqual from 'deep-equal';
 import debugModule from 'debug';
+import hark from 'hark'
+import getUserMedia from 'getusermedia'
+
 
 const $ = document.querySelector.bind(document);
 const $$ = document.querySelectorAll.bind(document);
@@ -42,7 +45,27 @@ export let device,
            isBlur = false,
            isModerator = false,
            moderatorPeerID = '',
-           wg_started = false;
+           wg_started = false,
+           is_speaking = false;
+var ar = null;
+
+
+getUserMedia(function (err, stream) {
+  if (err) throw err
+
+  var options = {};
+  var speechEvents = hark(stream, options);
+
+  speechEvents.on('speaking', function () {
+    sig('speaking', { src: 'participant_' + myPeerId, status: 'start' });
+    console.log(currentNameMap['participant_' + myPeerId] + ' is speaking!');
+  });
+
+  speechEvents.on('stopped_speaking', function () {
+    sig('speaking', { src: 'participant_' + myPeerId, status: 'stop' });
+    console.log(currentNameMap['participant_' + myPeerId] + ' stopped speaking!');
+  });
+});
 
 export async function showCoords(event) {
   var cX = event.clientX;
@@ -103,56 +126,56 @@ export async function main() {
   window.addEventListener('unload', () => sig('leave', {}, true));
 
   // ========== If use GazeCloud ==========
-  // GazeCloudAPI.OnCalibrationComplete = function () {
-  //   console.log('gaze Calibration Complete');
-  //   if (!isBlur) {
-  //     $("#gaze").style.display = 'block';
-  //   }
-  // }
-  // GazeCloudAPI.OnCamDenied = function () { console.log('camera access denied') }
-  // GazeCloudAPI.OnError = function (msg) { console.log('err: ' + msg) }
-  // GazeCloudAPI.UseClickRecalibration = true;
-  // GazeCloudAPI.OnResult = processGaze
+  GazeCloudAPI.OnCalibrationComplete = function () {
+    console.log('gaze Calibration Complete');
+    if (!isBlur) {
+      $("#gaze").style.display = 'block';
+    }
+  }
+  GazeCloudAPI.OnCamDenied = function () { console.log('camera access denied') }
+  GazeCloudAPI.OnError = function (msg) { console.log('err: ' + msg) }
+  GazeCloudAPI.UseClickRecalibration = true;
+  GazeCloudAPI.OnResult = processGaze
 
   // ========== If use WebGazer ==========
-  webgazer.params.showVideoPreview = true;
-  window.applyKalmanFilter = true;
-  window.saveDataAcrossSessions = true;
+  // webgazer.params.showVideoPreview = true;
+  // window.applyKalmanFilter = true;
+  // window.saveDataAcrossSessions = true;
 
-  await webgazer.setRegression('ridge') /* currently must set regression and tracker */
-    //.setTracker('clmtrackr')
-    .setGazeListener(function (data, clock) {
-      //   console.log(data); /* data is an object containing an x and y key which are the x and y prediction coordinates (no bounds limiting) */
-      //   console.log(clock); /* elapsed time in milliseconds since webgazer.begin() was called */
-      if (data == null) {
-        return;
-      }
-      var xprediction = data.x; //these x coordinates are relative to the viewport
-      var yprediction = data.y; //these y coordinates are relative to the viewport
+  // await webgazer.setRegression('ridge') /* currently must set regression and tracker */
+  //   //.setTracker('clmtrackr')
+  //   .setGazeListener(function (data, clock) {
+  //     //   console.log(data); /* data is an object containing an x and y key which are the x and y prediction coordinates (no bounds limiting) */
+  //     //   console.log(clock); /* elapsed time in milliseconds since webgazer.begin() was called */
+  //     if (data == null) {
+  //       return;
+  //     }
+  //     var xprediction = data.x; //these x coordinates are relative to the viewport
+  //     var yprediction = data.y; //these y coordinates are relative to the viewport
 
-      gazeX = xprediction;
-      gazeY = yprediction;
+  //     gazeX = xprediction;
+  //     gazeY = yprediction;
 
-      var gaze = document.getElementById("gaze");
-      xprediction -= gaze.clientWidth / 2;
-      yprediction -= gaze.clientHeight / 2;
+  //     var gaze = document.getElementById("gaze");
+  //     xprediction -= gaze.clientWidth / 2;
+  //     yprediction -= gaze.clientHeight / 2;
 
-      gaze.style.left = xprediction + "px";
-      gaze.style.top = yprediction + "px";
+  //     gaze.style.left = xprediction + "px";
+  //     gaze.style.top = yprediction + "px";
 
-      // console.log(xprediction, yprediction);
-      // console.log(elapsedTime);
-    });
-  // webgazer.showPredictionPoints(true); /* shows a square every 100 milliseconds where current prediction is */
-  function hideVideoElements() {
-    webgazer.showPredictionPoints(false);
-    webgazer.showVideo(false);
-    webgazer.showFaceOverlay(false);
-    webgazer.showFaceFeedbackBox(false);
-    //webgazer.showGazeDot(false);
-  };
-  hideVideoElements();
-  webgazer.loadGlobalData();
+  //     // console.log(xprediction, yprediction);
+  //     // console.log(elapsedTime);
+  //   });
+  // // webgazer.showPredictionPoints(true); /* shows a square every 100 milliseconds where current prediction is */
+  // function hideVideoElements() {
+  //   webgazer.showPredictionPoints(false);
+  //   webgazer.showVideo(false);
+  //   webgazer.showFaceOverlay(false);
+  //   webgazer.showFaceFeedbackBox(false);
+  //   //webgazer.showGazeDot(false);
+  // };
+  // hideVideoElements();
+  // webgazer.loadGlobalData();
 
 }
 
@@ -240,6 +263,7 @@ export async function joinRoom() {
     sendAudioOnly();
   }
   else {
+    console.log('Starting camera!!!')
     sendCameraStreams();
   }
 
@@ -1003,6 +1027,9 @@ function updateSpotlight(distributionMap) {
   for (var key in distributionMap) {
     if ($('#' + key) !== null) {
       $('#' + key).style.opacity = 0.3 + distributionMap[key] * 0.7;
+      setTimeout(() => {
+        $('#' + key).classList.add("opacity_transition");
+      }, 50);
     }
   }
 }
@@ -1019,21 +1046,23 @@ export async function changeSpy() {
   // }
   // remove all viz if ckecked -> unchecked
   if (!$('#viz3').checked) {
-    if ($('#svg-canvas') !== null) {
-      $('#svg-canvas').remove();
-    }
+    // if ($('#svg-canvas') !== null) {
+    //   $('#svg-canvas').remove();
+    // }
+    exit_curve();
   }
 }
 
 function updateSpy(target, gazeMap_, distributionMap) {
-  if ($('#svg-canvas') !== null) {
-    $('#svg-canvas').innerHTML = '';
-    markerInitialized = false;
-  }
+  // if ($('#svg-canvas') !== null) {
+  //   $('#svg-canvas').innerHTML = '';
+  //   markerInitialized = false;
+  // }
+  exit_curve();
   if (target in gazeMap_) {
     const gaze = gazeMap_[target];
     if ((gaze in distributionMap) && (gaze !== target)) {
-      connectDivs($(`#${target}_div`), $(`#${gaze}_div`), '#3C99DC', 4);
+      connectDivs($(`#${target}_div`), $(`#${gaze}_div`), '#ff5a00', 4);
       // $('#' + target + '_name').innerHTML = currentNameMap[target] + ' -> ' + currentNameMap[gaze];
     }
   }
@@ -1085,6 +1114,9 @@ function updateGazeInfo(target, gazeMap) {
     for (var key in gazeDistribution) {
       if ($('#' + key) !== null) {
         $('#' + key).style.opacity = 1;
+        setTimeout(() => {
+          ('#' + key).classList.add("opacity_transition");
+        }, 50);
       }
     }
     justUnchecked = false;
@@ -1155,51 +1187,72 @@ function connectDivs(elem1, elem2, color, tension) {
 
   // var width = x2 - x1;
   // var height = y2 - y1;
-
-  drawCircle(x1, y1, 5, color);
+  // drawCircle(x1, y1, 5, color);
   // drawCircle(x2, y2, 3, color);
-  createTriangleMarker(color);
+  // createTriangleMarker(color);
 
   drawCurvedLine(x1, y1, x2, y2, color, tension, coeff);
 }
 
 function drawCurvedLine(x1, y1, x2, y2, color, tension, coeff) {
-  var svg = createSVG();
-  var shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  var gap = 20;
+  // var svg = createSVG();
+  // var shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  var xcoeff = 1 / coeff;//-coeff;
   if (y2 === y1) {
-    y2 = y2 + gap * coeff;
+    // y2 = y2 + gap * coeff;
+    if (x1 > x2) xcoeff = -1 / coeff
     var delta = 20 * tension;
     var hx1 = x1;
     var hy1 = y1 + delta * coeff;
-    var hx2 = x2;
+    var hx2 = x2 - xcoeff * delta * coeff;
     var hy2 = y2 + delta * coeff;
     var path = "M " + x1 + " " + y1 +
       " C " + hx1 + " " + hy1 + " "
       + hx2 + " " + hy2 + " "
       + x2 + " " + y2;
   } else {
-    y2 += gap * coeff;
+    // y2 += gap * coeff;
+    if (x1 < x2) xcoeff = -1 / coeff
     var delta = 20 * tension;
     if (x1 === x2) {
       var delta = 0;
     }
     var hx1 = x1;
     var hy1 = y1 - delta * coeff;
-    var hx2 = x2;
+    var hx2 = x2 + xcoeff * delta * coeff;
     var hy2 = y2 + delta * coeff;
     var path = "M " + x1 + " " + y1 +
       " C " + hx1 + " " + hy1 + " "
       + hx2 + " " + hy2 + " "
       + x2 + " " + y2;
   }
-  shape.setAttributeNS(null, "d", path);
-  shape.setAttributeNS(null, "fill", "none");
-  shape.setAttributeNS(null, "stroke", color);
-  shape.setAttributeNS(null, "stroke-width", 3);
-  shape.setAttributeNS(null, "stroke-linecap", 'round');
-  shape.setAttributeNS(null, "marker-end", "url(#triangle)");
-  svg.appendChild(shape);
+  var ya = new yarrow.Yarrow();
+  ar = ya.arrow({
+    x1: 0,
+    y1: 0,
+    x2: document.body.clientWidth,
+    y2: document.body.clientHeight,
+    d: path,
+    duration: 500,     // arrow duration
+    duration1: 125,     // tip1 duration
+    delay2: 500 + 125, // tip2 delay
+    duration2: 125,      // tip2 duration
+
+    arrowStyles: {
+      'stroke': color,//'#ff5a00',
+      'stroke-width': 10
+    },
+
+  }).render()
+
+}
+
+function exit_curve() {
+  // ar.render()
+  if (ar !== null) {
+    ar.dispose(250, 0);
+    ar = null;
+  }
 }
 
 function createTriangleMarker(color) {
